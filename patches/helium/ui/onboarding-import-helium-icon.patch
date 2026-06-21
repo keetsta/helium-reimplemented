@@ -1,0 +1,31 @@
+--- a/components/helium_onboarding/src/pages/DataImport.svelte
++++ b/components/helium_onboarding/src/pages/DataImport.svelte
+@@ -10,6 +10,7 @@
+ 
+     import IconWorld from "../icons/tabler/IconWorld.svelte";
+     import IconTransferIn from "../icons/tabler/IconTransferIn.svelte";
++    import HeliumLogo from "../icons/HeliumLogo.svelte";
+ 
+     const visible = $derived($currentPage === "DataImport");
+ 
+@@ -64,6 +65,8 @@
+                     <div class="browser-icon">
+                         {#if url}
+                             <img src={url} alt="{browser} icon" />
++                        {:else if browser === "Helium"}
++                            <HeliumLogo />
+                         {:else}
+                             <IconWorld />
+                         {/if}
+@@ -129,6 +132,11 @@
+                 width: 28px;
+                 height: 28px;
+             }
++
++            & :global(svg) {
++                width: 28px;
++                height: 28px;
++            }
+         }
+ 
+         & > h4 {

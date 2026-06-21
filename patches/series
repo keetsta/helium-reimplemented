@@ -288,6 +288,7 @@ helium/ui/remove-autofill-link-to-password-manager.patch
 helium/ui/fix-caption-button-bounds.patch
 helium/ui/find-bar.patch
 helium/ui/custom-keyboard-shortcuts-wiring.patch
+helium/ui/onboarding-import-helium-icon.patch
 
 helium/ui/layout/migrate-prefs.patch
 helium/ui/layout/core.patch
