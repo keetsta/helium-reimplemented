@@ -126,7 +126,7 @@
 +#endif  // COMPONENTS_HELIUM_SYNC_HELIUM_SYNC_SERVICE_H_
 --- /dev/null
 +++ b/components/helium_sync/helium_sync_service.cc
-@@ -0,0 +1,454 @@
+@@ -0,0 +1,456 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -149,9 +149,11 @@
 +#include "extensions/browser/extension_registry.h"
 +#include "extensions/common/extension_set.h"
 +#include "net/base/load_flags.h"
++#include "net/traffic_annotation/network_traffic_annotation.h"
 +#include "services/network/public/cpp/resource_request.h"
 +#include "services/network/public/cpp/shared_url_loader_factory.h"
 +#include "services/network/public/cpp/simple_url_loader.h"
++#include "services/network/public/mojom/url_response_head.mojom.h"
 +#include "url/gurl.h"
 +
 +namespace helium {
@@ -311,7 +313,7 @@
 +    return;
 +  }
 +
-+  auto parsed = base::JSONReader::ReadDict(*response_body);
++  auto parsed = base::JSONReader::ReadDict(*response_body, base::JSON_PARSE_RFC);
 +  if (!parsed) {
 +    LOG(ERROR) << "helium_sync: GET " << collection << " invalid json";
 +    SetStatus(Status::kError);
@@ -391,7 +393,7 @@
 +  }
 +
 +  if (response_body && response_code == 200) {
-+    auto parsed = base::JSONReader::ReadDict(*response_body);
++    auto parsed = base::JSONReader::ReadDict(*response_body, base::JSON_PARSE_RFC);
 +    if (parsed) {
 +      StoreVersionFor(collection, parsed->FindInt("version").value_or(0));
 +    }
