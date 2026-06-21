@@ -1,0 +1,744 @@
+--- /dev/null
++++ b/components/helium_sync/helium_sync_service.h
+@@ -0,0 +1,122 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#ifndef COMPONENTS_HELIUM_SYNC_HELIUM_SYNC_SERVICE_H_
++#define COMPONENTS_HELIUM_SYNC_HELIUM_SYNC_SERVICE_H_
++
++#include <memory>
++#include <string>
++#include <vector>
++
++#include "base/functional/callback.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/values.h"
++#include "components/keyed_service/core/keyed_service.h"
++#include "components/prefs/pref_change_registrar.h"
++
++class PrefService;
++
++namespace bookmarks {
++class BookmarkModel;
++}
++
++namespace extensions {
++class ExtensionRegistry;
++}
++
++namespace network {
++class SharedURLLoaderFactory;
++class SimpleURLLoader;
++}  // namespace network
++
++namespace helium {
++
++// Cross-device sync of the extension list and bookmarks against the
++// self-hosted sync service (`{origin}/sync/{collection}`).
++//
++// This is intentionally conservative because it touches user data:
++//   - Bookmarks are additive only. Remote bookmarks missing locally are added;
++//     local bookmarks are never deleted to mirror the server.
++//   - Extensions are reported, not silently installed. The set of synced
++//     extension ids is uploaded, and remote ids missing locally are exposed
++//     via GetMissingExtensions() so the UI can offer a user-initiated install.
++//     Silently installing extensions pushed by a server is an attack surface
++//     we deliberately avoid.
++class HeliumSyncService : public KeyedService {
++ public:
++  // Result of the most recent sync, surfaced to settings/onboarding via prefs.
++  enum class Status : int {
++    kIdle = 0,
++    kSyncing = 1,
++    kSuccess = 2,
++    kError = 3,
++    kConflictRetrying = 4,
++  };
++
++  HeliumSyncService(
++      PrefService* prefs,
++      bookmarks::BookmarkModel* bookmark_model,
++      extensions::ExtensionRegistry* extension_registry,
++      scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory);
++  HeliumSyncService(const HeliumSyncService&) = delete;
++  HeliumSyncService& operator=(const HeliumSyncService&) = delete;
++  ~HeliumSyncService() override;
++
++  // Triggers a full sync of all enabled collections. Safe to call from the UI
++  // ("sync now" button). No-op if syncing is disabled or already in progress.
++  void SyncNow();
++
++  // Extension ids present on the server but not installed locally, from the
++  // last completed extensions sync. Drives the "missing extensions" UI.
++  const std::vector<std::string>& GetMissingExtensions() const {
++    return missing_extensions_;
++  }
++
++  Status last_status() const { return last_status_; }
++
++ private:
++  // One collection's GETв†’mergeв†’PUT round-trip.
++  void SyncCollection(const std::string& collection);
++  void OnCollectionFetched(const std::string& collection,
++                           std::unique_ptr<network::SimpleURLLoader> loader,
++                           std::optional<std::string> response_body);
++  void PushCollection(const std::string& collection,
++                      int base_version,
++                      base::Value::Dict payload);
++  void OnCollectionPushed(const std::string& collection,
++                          std::unique_ptr<network::SimpleURLLoader> loader,
++                          std::optional<std::string> response_body);
++
++  // Collection (de)serialization. These read/write the live BookmarkModel and
++  // ExtensionRegistry. `remote` is the server's `data` field (may be null).
++  base::Value::List SerializeExtensions() const;
++  void ApplyRemoteExtensions(const base::Value::List& remote);
++
++  base::Value::List SerializeBookmarks() const;
++  void ApplyRemoteBookmarks(const base::Value::List& remote);
++
++  void SetStatus(Status status);
++  void OnSyncPrefChanged();
++
++  int VersionPrefFor(const std::string& collection) const;
++  void StoreVersionFor(const std::string& collection, int version);
++  bool CollectionEnabled(const std::string& collection) const;
++
++  raw_ptr<PrefService> prefs_;
++  raw_ptr<bookmarks::BookmarkModel> bookmark_model_;
++  raw_ptr<extensions::ExtensionRegistry> extension_registry_;
++  scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
++
++  PrefChangeRegistrar pref_change_registrar_;
++  std::vector<std::string> missing_extensions_;
++  Status last_status_ = Status::kIdle;
++  int collections_in_flight_ = 0;
++
++  base::WeakPtrFactory<HeliumSyncService> weak_factory_{this};
++};
++
++}  // namespace helium
++
++#endif  // COMPONENTS_HELIUM_SYNC_HELIUM_SYNC_SERVICE_H_
+--- /dev/null
++++ b/components/helium_sync/helium_sync_service.cc
+@@ -0,0 +1,423 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#include "components/helium_sync/helium_sync_service.h"
++
++#include <set>
++#include <utility>
++
++#include "base/functional/bind.h"
++#include "base/json/json_reader.h"
++#include "base/json/json_writer.h"
++#include "base/logging.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/time/time.h"
++#include "components/bookmarks/browser/bookmark_model.h"
++#include "components/bookmarks/browser/bookmark_node.h"
++#include "components/helium_services/helium_services_helpers.h"
++#include "components/helium_services/pref_names.h"
++#include "components/prefs/pref_service.h"
++#include "extensions/browser/extension_registry.h"
++#include "extensions/common/extension_set.h"
++#include "net/base/load_flags.h"
++#include "services/network/public/cpp/resource_request.h"
++#include "services/network/public/cpp/shared_url_loader_factory.h"
++#include "services/network/public/cpp/simple_url_loader.h"
++#include "url/gurl.h"
++
++namespace helium {
++
++namespace {
++
++constexpr char kExtensionsCollection[] = "extensions";
++constexpr char kBookmarksCollection[] = "bookmarks";
++
++constexpr int kMaxFetchRetries = 2;
++constexpr int kFetchTimeoutSeconds = 30;
++constexpr size_t kMaxResponseBytes = 1024 * 1024;  // mirrors server cap
++
++// Title of the folder synced bookmarks are added into. Kept stable so repeated
++// syncs reuse the same folder instead of creating duplicates.
++constexpr char16_t kSyncedFolderTitle[] = u"Synced";
++
++constexpr net::NetworkTrafficAnnotationTag kSyncTrafficTag =
++    net::DefineNetworkTrafficAnnotation("helium_sync", R"(
++        semantics {
++            sender: "Helium sync"
++            description:
++                "Syncs the user's extension list and bookmarks across their "
++                "own devices through the self-hosted Helium sync service."
++            trigger:
++                "Periodically and on user request when sync is enabled."
++            data:
++                "A bearer token chosen by the user, the list of installed "
++                "extension ids, and bookmark titles/urls."
++            destination: OTHER
++        }
++        policy {
++            cookies_allowed: NO
++            setting: "Controlled by the Helium services sync toggle."
++        })");
++
++}  // namespace
++
++HeliumSyncService::HeliumSyncService(
++    PrefService* prefs,
++    bookmarks::BookmarkModel* bookmark_model,
++    extensions::ExtensionRegistry* extension_registry,
++    scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory)
++    : prefs_(prefs),
++      bookmark_model_(bookmark_model),
++      extension_registry_(extension_registry),
++      url_loader_factory_(std::move(url_loader_factory)) {
++  pref_change_registrar_.Init(prefs_);
++  helium::ConfigurePrefChangeRegistrarFor(
++      prefs::kHeliumSyncEnabled, pref_change_registrar_,
++      base::BindRepeating(&HeliumSyncService::OnSyncPrefChanged,
++                          weak_factory_.GetWeakPtr()));
++}
++
++HeliumSyncService::~HeliumSyncService() = default;
++
++void HeliumSyncService::OnSyncPrefChanged() {
++  if (helium::ShouldSync(*prefs_)) {
++    SyncNow();
++  }
++}
++
++void HeliumSyncService::SyncNow() {
++  if (!helium::ShouldSync(*prefs_)) {
++    return;
++  }
++  if (collections_in_flight_ > 0) {
++    return;  // already syncing
++  }
++
++  SetStatus(Status::kSyncing);
++
++  if (CollectionEnabled(kExtensionsCollection)) {
++    ++collections_in_flight_;
++    SyncCollection(kExtensionsCollection);
++  }
++  if (CollectionEnabled(kBookmarksCollection)) {
++    ++collections_in_flight_;
++    SyncCollection(kBookmarksCollection);
++  }
++
++  if (collections_in_flight_ == 0) {
++    SetStatus(Status::kIdle);
++  }
++}
++
++bool HeliumSyncService::CollectionEnabled(const std::string& collection) const {
++  if (collection == kExtensionsCollection) {
++    return prefs_->GetBoolean(prefs::kHeliumSyncExtensionsEnabled);
++  }
++  if (collection == kBookmarksCollection) {
++    return prefs_->GetBoolean(prefs::kHeliumSyncBookmarksEnabled);
++  }
++  return false;
++}
++
++int HeliumSyncService::VersionPrefFor(const std::string& collection) const {
++  if (collection == kExtensionsCollection) {
++    return prefs_->GetInteger(prefs::kHeliumSyncExtensionsVersion);
++  }
++  if (collection == kBookmarksCollection) {
++    return prefs_->GetInteger(prefs::kHeliumSyncBookmarksVersion);
++  }
++  return 0;
++}
++
++void HeliumSyncService::StoreVersionFor(const std::string& collection,
++                                        int version) {
++  if (collection == kExtensionsCollection) {
++    prefs_->SetInteger(prefs::kHeliumSyncExtensionsVersion, version);
++  } else if (collection == kBookmarksCollection) {
++    prefs_->SetInteger(prefs::kHeliumSyncBookmarksVersion, version);
++  }
++}
++
++void HeliumSyncService::SyncCollection(const std::string& collection) {
++  GURL url = helium::GetSyncCollectionURL(*prefs_, collection);
++  if (!url.is_valid()) {
++    SetStatus(Status::kError);
++    --collections_in_flight_;
++    return;
++  }
++
++  auto request = std::make_unique<network::ResourceRequest>();
++  request->url = url;
++  request->method = "GET";
++  request->load_flags = net::LOAD_DISABLE_CACHE;
++  request->credentials_mode = network::mojom::CredentialsMode::kOmit;
++  request->headers.SetHeader(
++      "Authorization",
++      "Bearer " + prefs_->GetString(prefs::kHeliumSyncToken));
++
++  auto loader = network::SimpleURLLoader::Create(std::move(request),
++                                                 kSyncTrafficTag);
++  loader->SetTimeoutDuration(base::Seconds(kFetchTimeoutSeconds));
++  loader->SetRetryOptions(kMaxFetchRetries,
++                          network::SimpleURLLoader::RETRY_ON_NETWORK_CHANGE);
++
++  auto* loader_ptr = loader.get();
++  loader_ptr->DownloadToString(
++      url_loader_factory_.get(),
++      base::BindOnce(&HeliumSyncService::OnCollectionFetched,
++                     weak_factory_.GetWeakPtr(), collection, std::move(loader)),
++      kMaxResponseBytes);
++}
++
++void HeliumSyncService::OnCollectionFetched(
++    const std::string& collection,
++    std::unique_ptr<network::SimpleURLLoader> loader,
++    std::optional<std::string> response_body) {
++  if (!response_body) {
++    LOG(ERROR) << "helium_sync: GET " << collection << " failed";
++    SetStatus(Status::kError);
++    --collections_in_flight_;
++    return;
++  }
++
++  auto parsed = base::JSONReader::ReadDict(*response_body);
++  if (!parsed) {
++    LOG(ERROR) << "helium_sync: GET " << collection << " invalid json";
++    SetStatus(Status::kError);
++    --collections_in_flight_;
++    return;
++  }
++
++  int remote_version = parsed->FindInt("version").value_or(0);
++  const base::Value* data = parsed->Find("data");
++
++  // Apply the remote data into the live model (additive).
++  if (data && data->is_list()) {
++    if (collection == kExtensionsCollection) {
++      ApplyRemoteExtensions(data->GetList());
++    } else if (collection == kBookmarksCollection) {
++      ApplyRemoteBookmarks(data->GetList());
++    }
++  }
++
++  // Build the merged local view to push back up.
++  base::Value::Dict payload;
++  if (collection == kExtensionsCollection) {
++    payload.Set("data", SerializeExtensions());
++  } else {
++    payload.Set("data", SerializeBookmarks());
++  }
++  payload.Set("baseVersion", remote_version);
++
++  PushCollection(collection, remote_version, std::move(payload));
++}
++
++void HeliumSyncService::PushCollection(const std::string& collection,
++                                       int base_version,
++                                       base::Value::Dict payload) {
++  GURL url = helium::GetSyncCollectionURL(*prefs_, collection);
++  if (!url.is_valid()) {
++    SetStatus(Status::kError);
++    --collections_in_flight_;
++    return;
++  }
++
++  std::string body;
++  base::JSONWriter::Write(payload, &body);
++
++  auto request = std::make_unique<network::ResourceRequest>();
++  request->url = url;
++  request->method = "PUT";
++  request->load_flags = net::LOAD_DISABLE_CACHE;
++  request->credentials_mode = network::mojom::CredentialsMode::kOmit;
++  request->headers.SetHeader(
++      "Authorization",
++      "Bearer " + prefs_->GetString(prefs::kHeliumSyncToken));
++  request->headers.SetHeader("Content-Type", "application/json");
++
++  auto loader = network::SimpleURLLoader::Create(std::move(request),
++                                                 kSyncTrafficTag);
++  loader->SetTimeoutDuration(base::Seconds(kFetchTimeoutSeconds));
++  loader->AttachStringForUpload(body, "application/json");
++
++  auto* loader_ptr = loader.get();
++  loader_ptr->DownloadToString(
++      url_loader_factory_.get(),
++      base::BindOnce(&HeliumSyncService::OnCollectionPushed,
++                     weak_factory_.GetWeakPtr(), collection, std::move(loader)),
++      kMaxResponseBytes);
++}
++
++void HeliumSyncService::OnCollectionPushed(
++    const std::string& collection,
++    std::unique_ptr<network::SimpleURLLoader> loader,
++    std::optional<std::string> response_body) {
++  --collections_in_flight_;
++
++  int response_code = -1;
++  if (loader->ResponseInfo() && loader->ResponseInfo()->headers) {
++    response_code = loader->ResponseInfo()->headers->response_code();
++  }
++
++  if (response_body && response_code == 200) {
++    auto parsed = base::JSONReader::ReadDict(*response_body);
++    if (parsed) {
++      StoreVersionFor(collection, parsed->FindInt("version").value_or(0));
++    }
++    if (collections_in_flight_ == 0) {
++      SetStatus(Status::kSuccess);
++    }
++    return;
++  }
++
++  // A 409 means another device wrote concurrently. The next SyncNow() will
++  // re-fetch the newer version and merge again; we don't auto-loop here to
++  // keep the blind-written path simple.
++  LOG(ERROR) << "helium_sync: PUT " << collection
++             << " failed, code = " << response_code;
++  SetStatus(response_code == 409 ? Status::kConflictRetrying : Status::kError);
++}
++
++base::Value::List HeliumSyncService::SerializeExtensions() const {
++  base::Value::List list;
++  if (!extension_registry_) {
++    return list;
++  }
++  for (const auto& extension : extension_registry_->enabled_extensions()) {
++    list.Append(extension->id());
++  }
++  return list;
++}
++
++void HeliumSyncService::ApplyRemoteExtensions(const base::Value::List& remote) {
++  missing_extensions_.clear();
++  if (!extension_registry_) {
++    return;
++  }
++
++  const extensions::ExtensionSet& enabled =
++      extension_registry_->enabled_extensions();
++  const extensions::ExtensionSet& disabled =
++      extension_registry_->disabled_extensions();
++
++  for (const base::Value& value : remote) {
++    if (!value.is_string()) {
++      continue;
++    }
++    const std::string& id = value.GetString();
++    // Report ids we don't have at all. We never install silently.
++    if (!enabled.Contains(id) && !disabled.Contains(id)) {
++      missing_extensions_.push_back(id);
++    }
++  }
++}
++
++base::Value::List HeliumSyncService::SerializeBookmarks() const {
++  base::Value::List list;
++  if (!bookmark_model_ || !bookmark_model_->loaded()) {
++    return list;
++  }
++
++  // Flatten every bookmark URL into {title, url}. Folder structure is not
++  // preserved; synced bookmarks land in a single "Synced" folder on apply.
++  std::vector<const bookmarks::BookmarkNode*> stack;
++  stack.push_back(bookmark_model_->bookmark_bar_node());
++  stack.push_back(bookmark_model_->other_node());
++  if (bookmark_model_->mobile_node()) {
++    stack.push_back(bookmark_model_->mobile_node());
++  }
++
++  while (!stack.empty()) {
++    const bookmarks::BookmarkNode* node = stack.back();
++    stack.pop_back();
++    if (!node) {
++      continue;
++    }
++    for (const auto& child : node->children()) {
++      if (child->is_folder()) {
++        stack.push_back(child.get());
++      } else if (child->is_url()) {
++        base::Value::Dict entry;
++        entry.Set("title", base::UTF16ToUTF8(child->GetTitle()));
++        entry.Set("url", child->url().spec());
++        list.Append(std::move(entry));
++      }
++    }
++  }
++  return list;
++}
++
++void HeliumSyncService::ApplyRemoteBookmarks(const base::Value::List& remote) {
++  if (!bookmark_model_ || !bookmark_model_->loaded()) {
++    return;
++  }
++
++  // Gather the set of URLs already present locally so we only add new ones.
++  std::set<std::string> existing;
++  std::vector<const bookmarks::BookmarkNode*> stack = {
++      bookmark_model_->bookmark_bar_node(), bookmark_model_->other_node()};
++  if (bookmark_model_->mobile_node()) {
++    stack.push_back(bookmark_model_->mobile_node());
++  }
++  while (!stack.empty()) {
++    const bookmarks::BookmarkNode* node = stack.back();
++    stack.pop_back();
++    if (!node) {
++      continue;
++    }
++    for (const auto& child : node->children()) {
++      if (child->is_folder()) {
++        stack.push_back(child.get());
++      } else if (child->is_url()) {
++        existing.insert(child->url().spec());
++      }
++    }
++  }
++
++  // Find or create the "Synced" folder under other_node.
++  const bookmarks::BookmarkNode* synced_folder = nullptr;
++  const bookmarks::BookmarkNode* other = bookmark_model_->other_node();
++  for (const auto& child : other->children()) {
++    if (child->is_folder() && child->GetTitle() == kSyncedFolderTitle) {
++      synced_folder = child.get();
++      break;
++    }
++  }
++
++  for (const base::Value& value : remote) {
++    if (!value.is_dict()) {
++      continue;
++    }
++    const base::Value::Dict& dict = value.GetDict();
++    const std::string* url_str = dict.FindString("url");
++    const std::string* title = dict.FindString("title");
++    if (!url_str) {
++      continue;
++    }
++    GURL url(*url_str);
++    if (!url.is_valid() || existing.count(url.spec())) {
++      continue;
++    }
++
++    if (!synced_folder) {
++      synced_folder = bookmark_model_->AddFolder(
++          other, other->children().size(), kSyncedFolderTitle);
++    }
++    bookmark_model_->AddURL(
++        synced_folder, synced_folder->children().size(),
++        base::UTF8ToUTF16(title ? *title : *url_str), url);
++    existing.insert(url.spec());
++  }
++}
++
++void HeliumSyncService::SetStatus(Status status) {
++  last_status_ = status;
++  prefs_->SetInteger(prefs::kHeliumSyncLastStatus, static_cast<int>(status));
++  if (status == Status::kSuccess || status == Status::kError) {
++    prefs_->SetDouble(prefs::kHeliumSyncLastTime,
++                      base::Time::Now().InSecondsFSinceUnixEpoch());
++  }
++}
++
++}  // namespace helium
+--- /dev/null
++++ b/components/helium_sync/BUILD.gn
+@@ -0,0 +1,25 @@
++# Copyright 2025 The Helium Authors
++# You can use, redistribute, and/or modify this source code under
++# the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++import("//build/config/features.gni")
++
++static_library("helium_sync") {
++  sources = [
++    "helium_sync_service.cc",
++    "helium_sync_service.h",
++  ]
++
++  deps = [
++    "//base",
++    "//components/bookmarks/browser",
++    "//components/helium_services",
++    "//components/keyed_service/core",
++    "//components/prefs",
++    "//extensions/browser",
++    "//extensions/common",
++    "//net",
++    "//services/network/public/cpp",
++    "//url",
++  ]
++}
+--- /dev/null
++++ b/chrome/browser/helium_sync/helium_sync_service_factory.h
+@@ -0,0 +1,39 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_HELIUM_SYNC_HELIUM_SYNC_SERVICE_FACTORY_H_
++#define CHROME_BROWSER_HELIUM_SYNC_HELIUM_SYNC_SERVICE_FACTORY_H_
++
++#include "base/no_destructor.h"
++#include "chrome/browser/profiles/profile_keyed_service_factory.h"
++
++class Profile;
++
++namespace helium {
++
++class HeliumSyncService;
++
++class HeliumSyncServiceFactory : public ProfileKeyedServiceFactory {
++ public:
++  static HeliumSyncService* GetForProfile(Profile* profile);
++  static HeliumSyncServiceFactory* GetInstance();
++
++  HeliumSyncServiceFactory(const HeliumSyncServiceFactory&) = delete;
++  HeliumSyncServiceFactory& operator=(const HeliumSyncServiceFactory&) = delete;
++
++ private:
++  friend base::NoDestructor<HeliumSyncServiceFactory>;
++
++  HeliumSyncServiceFactory();
++  ~HeliumSyncServiceFactory() override;
++
++  // BrowserContextKeyedServiceFactory:
++  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
++      content::BrowserContext* context) const override;
++  bool ServiceIsCreatedWithBrowserContext() const override;
++};
++
++}  // namespace helium
++
++#endif  // CHROME_BROWSER_HELIUM_SYNC_HELIUM_SYNC_SERVICE_FACTORY_H_
+--- /dev/null
++++ b/chrome/browser/helium_sync/helium_sync_service_factory.cc
+@@ -0,0 +1,56 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#include "chrome/browser/helium_sync/helium_sync_service_factory.h"
++
++#include "chrome/browser/bookmarks/bookmark_model_factory.h"
++#include "chrome/browser/profiles/profile.h"
++#include "components/bookmarks/browser/bookmark_model.h"
++#include "components/helium_sync/helium_sync_service.h"
++#include "content/public/browser/browser_context.h"
++#include "content/public/browser/storage_partition.h"
++#include "extensions/browser/extension_registry.h"
++#include "extensions/browser/extension_registry_factory.h"
++
++namespace helium {
++
++// static
++HeliumSyncService* HeliumSyncServiceFactory::GetForProfile(Profile* profile) {
++  return static_cast<HeliumSyncService*>(
++      GetInstance()->GetServiceForBrowserContext(profile, /*create=*/true));
++}
++
++// static
++HeliumSyncServiceFactory* HeliumSyncServiceFactory::GetInstance() {
++  static base::NoDestructor<HeliumSyncServiceFactory> instance;
++  return instance.get();
++}
++
++HeliumSyncServiceFactory::HeliumSyncServiceFactory()
++    : ProfileKeyedServiceFactory("HeliumSyncService") {
++  DependsOn(BookmarkModelFactory::GetInstance());
++  DependsOn(extensions::ExtensionRegistryFactory::GetInstance());
++}
++
++HeliumSyncServiceFactory::~HeliumSyncServiceFactory() = default;
++
++std::unique_ptr<KeyedService>
++HeliumSyncServiceFactory::BuildServiceInstanceForBrowserContext(
++    content::BrowserContext* context) const {
++  Profile* profile = Profile::FromBrowserContext(context);
++  return std::make_unique<HeliumSyncService>(
++      profile->GetPrefs(),
++      BookmarkModelFactory::GetForBrowserContext(context),
++      extensions::ExtensionRegistry::Get(context),
++      context->GetDefaultStoragePartition()
++          ->GetURLLoaderFactoryForBrowserProcess());
++}
++
++bool HeliumSyncServiceFactory::ServiceIsCreatedWithBrowserContext() const {
++  // Create eagerly so the service can observe pref changes and run periodic
++  // syncs without the UI having to instantiate it first.
++  return true;
++}
++
++}  // namespace helium
+--- /dev/null
++++ b/chrome/browser/helium_sync/BUILD.gn
+@@ -0,0 +1,23 @@
++# Copyright 2025 The Helium Authors
++# You can use, redistribute, and/or modify this source code under
++# the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++source_set("helium_sync") {
++  sources = [
++    "helium_sync_service_factory.cc",
++    "helium_sync_service_factory.h",
++  ]
++
++  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
++
++  deps = [
++    "//base",
++    "//chrome/browser/bookmarks",
++    "//chrome/browser/profiles:profile",
++    "//components/bookmarks/browser",
++    "//components/helium_sync",
++    "//components/keyed_service/core",
++    "//content/public/browser",
++    "//extensions/browser",
++  ]
++}
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -642,6 +642,7 @@
+     "//chrome/browser/first_run:impl",
+     "//chrome/browser/google",
+     "//chrome/browser/headless:initializer",
++    "//chrome/browser/helium_sync",
+     "//chrome/browser/history",
+     "//chrome/browser/history:impl",
+     "//chrome/browser/history_embeddings",
+--- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
++++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
+@@ -111,6 +111,7 @@
+ #include "chrome/browser/glic/public/glic_keyed_service_factory.h"
+ #include "chrome/browser/glic/suggestions/contextual_cueing_service_factory.h"
+ #include "chrome/browser/heavy_ad_intervention/heavy_ad_service_factory.h"
++#include "chrome/browser/helium_sync/helium_sync_service_factory.h"
+ #include "chrome/browser/hid/hid_policy_allowed_devices_factory.h"
+ #include "chrome/browser/history/domain_diversity_reporter_factory.h"
+ #include "chrome/browser/history/history_service_factory.h"
+@@ -1037,6 +1038,7 @@
+   GoogleGroupsManagerFactory::GetInstance();
+   HatsServiceFactory::GetInstance();
+   HeavyAdServiceFactory::GetInstance();
++  helium::HeliumSyncServiceFactory::GetInstance();
+ #if !BUILDFLAG(IS_ANDROID)
+   HidChooserContextFactory::GetInstance();
+   HidConnectionTrackerFactory::GetInstance();
+--- a/chrome/browser/DEPS
++++ b/chrome/browser/DEPS
+@@ -174,6 +174,7 @@
+   "+components/headless",
+   "+components/heap_profiling",
+   "+components/heavy_ad_intervention",
++  "+components/helium_sync",
+   "+components/history/content/browser",
+   "+components/history/core/browser",
+   "+components/history/core/common",
