@@ -1,0 +1,127 @@
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -446,6 +446,14 @@
+       settings_api::PrefType::kBoolean;
+   (*s_allowlist)[::prefs::kHeliumUBlockAssetsEnabled] =
+       settings_api::PrefType::kBoolean;
++  (*s_allowlist)[::prefs::kHeliumSyncEnabled] =
++      settings_api::PrefType::kBoolean;
++  (*s_allowlist)[::prefs::kHeliumSyncToken] =
++      settings_api::PrefType::kString;
++  (*s_allowlist)[::prefs::kHeliumSyncExtensionsEnabled] =
++      settings_api::PrefType::kBoolean;
++  (*s_allowlist)[::prefs::kHeliumSyncBookmarksEnabled] =
++      settings_api::PrefType::kBoolean;
+   (*s_allowlist)[::prefs::kHeliumServicesOrigin] =
+       settings_api::PrefType::kString;
+   (*s_allowlist)[::prefs::kHeliumServicesConsented] =
+--- a/chrome/app/settings_strings.grdp
++++ b/chrome/app/settings_strings.grdp
+@@ -1835,6 +1835,24 @@
+     <message name="IDS_SETTINGS_HELIUM_SERVICES_UBO_DESCRIPTION" desc="Description of the toggle for automatic update downloads">
+       Helium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Helium. Optional filter lists will be requested without proxying.
+     </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC" desc="Toggle for enabling cross-device sync">
++      Sync extensions and bookmarks across your devices
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_DESCRIPTION" desc="Description of the cross-device sync toggle">
++      Helium will sync your extension list and bookmarks across devices that share the same sync token. Bookmarks are only ever added, never deleted. Extensions are listed for you to install, never installed automatically.
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_EXTENSIONS" desc="Toggle for syncing the extension list">
++      Sync extensions
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_BOOKMARKS" desc="Toggle for syncing bookmarks">
++      Sync bookmarks
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN" desc="Label for the sync token input">
++      Sync token
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_DESCRIPTION" desc="Description of the sync token input">
++      Enter the same secret token on each device you want to sync. Anyone with this token can read and write your synced data, so keep it private and use at least 32 characters.
++    </message>
+     <message name="IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE" desc="Text input for overriding the Helium services server">
+       Use your own instance of Helium services
+     </message>
+--- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
++++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
+@@ -2284,6 +2284,16 @@
+         IDS_SETTINGS_HELIUM_SERVICES_UBO},
+       {"heliumUboToggleDescription",
+         IDS_SETTINGS_HELIUM_SERVICES_UBO_DESCRIPTION},
++      {"heliumSyncToggle", IDS_SETTINGS_HELIUM_SERVICES_SYNC},
++      {"heliumSyncToggleDescription",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_DESCRIPTION},
++      {"heliumSyncExtensionsToggle",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_EXTENSIONS},
++      {"heliumSyncBookmarksToggle",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_BOOKMARKS},
++      {"heliumSyncToken", IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN},
++      {"heliumSyncTokenDescription",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_DESCRIPTION},
+       {"heliumOriginOverride", IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE},
+       {"heliumOriginOverrideDescription",
+         IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION},
+--- a/chrome/browser/resources/settings/privacy_page/services_page.html
++++ b/chrome/browser/resources/settings/privacy_page/services_page.html
+@@ -109,6 +109,44 @@
+                 label="$i18n{heliumUboToggle}"
+                 sub-label="$i18n{heliumUboToggleDescription}">
+             </settings-toggle-button>
++            <settings-toggle-button id="syncToggleButton"
++                pref="{{prefs.helium.services.sync}}"
++                label="$i18n{heliumSyncToggle}"
++                sub-label="$i18n{heliumSyncToggleDescription}">
++            </settings-toggle-button>
++            <div class="cr-col">
++                <cr-collapse id="syncCollapse"
++                    opened="[[prefs.helium.services.sync.value]]">
++                    <settings-toggle-button id="syncExtensionsToggleButton"
++                        pref="{{prefs.helium.services.sync_extensions}}"
++                        label="$i18n{heliumSyncExtensionsToggle}">
++                    </settings-toggle-button>
++                    <settings-toggle-button id="syncBookmarksToggleButton"
++                        pref="{{prefs.helium.services.sync_bookmarks}}"
++                        label="$i18n{heliumSyncBookmarksToggle}">
++                    </settings-toggle-button>
++                    <div class="cr-row">
++                      <div class="flex">
++                        <div class="flex label-wrapper">
++                            <div class="label">$i18n{heliumSyncToken}</div>
++                            <div class="cr-secondary-text label">
++                                $i18n{heliumSyncTokenDescription}
++                            </div>
++                        </div>
++                        <cr-input
++                            id="heliumSyncToken"
++                            value="[[prefs.helium.services.sync_token.value]]"
++                            on-change="onSyncTokenChange_"
++                            type="password"
++                            minlength="32"
++                            maxlength="512"
++                            aria-label="$i18n{heliumSyncToken}"
++                            spellcheck="false">
++                        </cr-input>
++                      </div>
++                    </div>
++                </cr-collapse>
++            </div>
+         </cr-collapse>
+     </div>
+     </template>
+--- a/chrome/browser/resources/settings/privacy_page/services_page.ts
++++ b/chrome/browser/resources/settings/privacy_page/services_page.ts
+@@ -98,6 +98,14 @@
+   private onServicesPendingButtonClick_() {
+     window.open('chrome://setup', '_blank');
+   }
++
++  private onSyncTokenChange_(event: Event) {
++    const target = event.target as CrInputElement;
++    if (target.invalid) {
++      return;
++    }
++    this.setPrefValue('helium.services.sync_token', target.value);
++  }
+ }
+ 
+ declare global {

@@ -165,6 +165,7 @@ helium/core/ublock-reconfigure-defaults.patch
 helium/core/ublock-helium-services.patch
 helium/core/sync-prefs-and-url.patch
 helium/core/sync-client-engine.patch
+helium/core/sync-settings-ui.patch
 helium/core/clean-omnibox-suggestions.patch
 helium/core/increase-incognito-storage-quota.patch
 
