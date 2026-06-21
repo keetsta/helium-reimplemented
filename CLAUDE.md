@@ -101,10 +101,17 @@ Chromium версия: **149.0.7827.155** (см. `chromium_version.txt`).
 
 ## Открытые следующие шаги
 
-1. **Фича #2 (синк расширений + закладок)** — в работе. Разобрать контракт
-   `helium-services` `/ext` (репо `imputnet/helium-services`), спроектировать синк закладок
-   поверх того же канала.
-2. Фича #3 (send-to-device): спроектировать поверх helium_services-канала.
+1. **Фича #2 (синк расширений + закладок) — НАПИСАНО, не собрано.** Сервер `svc/sync` в
+   `Z:\helium-services` (Deno KV, `/sync/{extensions,bookmarks}`, Bearer-токен,
+   optimistic version) — протестирован локально через `deno serve`. Клиент — 3 патча в
+   `patches/series` (`sync-prefs-and-url`, `sync-client-engine`, `sync-settings-ui`):
+   prefs+токен+URL-резолвер, компонент `HeliumSyncService` (KeyedService, SimpleURLLoader),
+   тумблеры+поле токена в Settings. Закладки additive-only (папка "Synced", без удалений);
+   расширения не ставятся автоматом (только список missing для ручной установки). **Клиент
+   написан вслепую, не компилировался — нужна чистая `fork-build.ps1` для отлова фиксов.**
+   Не сделано: кнопка «sync now»+статус (нужен WebUI handler), onboarding-поверхность.
+2. Фича #3 (send-to-device): спроектировать поверх `minipush` (storageless Web Push в
+   helium-services) — это и есть канал для send-to-device.
 3. Бэклог: иконка стокового Helium в списке импорта онбординга (Svelte); Вариант 2
    zoom bubble (бабл без иконки) — на `--dev` сборке.
 
