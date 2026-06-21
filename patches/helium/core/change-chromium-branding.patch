@@ -11,10 +11,10 @@
 -MAC_BUNDLE_ID=org.chromium.Chromium
 +COMPANY_FULLNAME=The Helium Authors
 +COMPANY_SHORTNAME=The Helium Authors
-+PRODUCT_FULLNAME=Helium reimplemented
-+PRODUCT_SHORTNAME=Helium reimplemented
-+PRODUCT_INSTALLER_FULLNAME=Helium reimplemented Installer
-+PRODUCT_INSTALLER_SHORTNAME=Helium reimplemented Installer
++PRODUCT_FULLNAME=Helium Reimplemented
++PRODUCT_SHORTNAME=Helium Reimplemented
++PRODUCT_INSTALLER_FULLNAME=Helium Reimplemented Installer
++PRODUCT_INSTALLER_SHORTNAME=Helium Reimplemented Installer
 +COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Helium Authors. All rights reserved.
 +MAC_BUNDLE_ID=net.imput.helium
  MAC_CREATOR_CODE=Cr24

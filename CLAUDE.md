@@ -32,11 +32,17 @@ Chromium версия: **149.0.7827.155** (см. `chromium_version.txt`).
   снова появляется в адресной строке при зуме ≠ 100% (Вариант 2 «бабл без иконки» отложен —
   требует расцепления склеенной логики ZoomView, делать на `--dev` сборке).
 - **Разведение идентификаторов форка** — чтобы стоял рядом со стоковым Helium:
-  - Display-имя → **"Helium reimplemented"** (`change-chromium-branding.patch`:
-    `PRODUCT_FULLNAME`/`PRODUCT_SHORTNAME`/installer).
+  - Display-имя → **"Helium Reimplemented"**. ВАЖНО: имя в UI берётся НЕ из BRANDING
+    (это только метаданные installer/.exe), а из build-time подстановки
+    `utils/name_substitution_utils.py` (строка `REPLACEMENT_REGEXES_STR`), которая в build.py
+    переписывает `Chrome`/`Chromium` → имя во ВСЕХ `.grd`/`.xtb`. Изменено на
+    `Helium Reimplemented` (+ синхронизированы sanity-asserts в `name_substitution.py`).
+    Подстановка односторонняя и без бэкапа → новое имя видно ТОЛЬКО после чистой
+    распаковки Chromium + полного `build.py` (ninja-only пересборка имя не меняет).
+    Также `change-chromium-branding.patch`: `PRODUCT_FULLNAME`/`PRODUCT_SHORTNAME`/installer.
   - Windows (`helium-windows/patches/helium/windows/change-branding.patch`):
-    `kProductPathName="Helium reimplemented"` (профиль уходит в
-    `%LOCALAPPDATA%\imput\Helium reimplemented\User Data`), новые `app_guid`/`active_setup`
+    `kProductPathName="Helium Reimplemented"` (профиль уходит в
+    `%LOCALAPPDATA%\imput\Helium Reimplemented\User Data`), новые `app_guid`/`active_setup`
     `{298763AD-...}`, command_execute `{F6145005-...}`, toast `0xA1B73292...`,
     elevator_clsid `0x2B6B017D...`, elevator_iid `0xDE2DE0BD...`, ProgID `HeliumReimpl*`.
 - **Импорт из стокового Helium в онбординг (фича-доп)** — добавлен Helium как источник

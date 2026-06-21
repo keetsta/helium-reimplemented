@@ -15,7 +15,7 @@ REPLACEMENT_REGEXES_STR = [
 
     # main replacement(s)
     (r'(\b)chrome://', r'\1helium://'),
-    (r'(?:Google )?Chrom(e|ium)(?!\w)', r'Helium'),
+    (r'(?:Google )?Chrom(e|ium)(?!\w)', r'Helium Reimplemented'),
 
     # post-replacement cleanup
     (r'((?:Google )?Chrom(e|ium))_unreplace', r'\1'),
