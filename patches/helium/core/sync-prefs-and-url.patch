@@ -1,0 +1,106 @@
+--- a/components/helium_services/pref_names.h
++++ b/components/helium_services/pref_names.h
+@@ -41,6 +41,37 @@
+ 
+ inline constexpr char kHeliumUBlockAssetsEnabled[] =
+     "helium.services.ublock_assets";
++
++// Cross-device sync of the extension list and bookmarks via the self-hosted
++// sync service. `kHeliumSyncEnabled` is the master toggle; the per-collection
++// toggles gate what is synced. `kHeliumSyncToken` is the device-generated
++// shared secret that identifies this user's namespace on the server. The
++// `*_version` prefs hold the last server version seen per collection, used for
++// optimistic-concurrency PUTs. `kHeliumSyncLastStatus` / `kHeliumSyncLastTime`
++// back the status shown in settings and onboarding.
++inline constexpr char kHeliumSyncEnabled[] =
++    "helium.services.sync";
++
++inline constexpr char kHeliumSyncToken[] =
++    "helium.services.sync_token";
++
++inline constexpr char kHeliumSyncExtensionsEnabled[] =
++    "helium.services.sync_extensions";
++
++inline constexpr char kHeliumSyncBookmarksEnabled[] =
++    "helium.services.sync_bookmarks";
++
++inline constexpr char kHeliumSyncExtensionsVersion[] =
++    "helium.services.sync_extensions_version";
++
++inline constexpr char kHeliumSyncBookmarksVersion[] =
++    "helium.services.sync_bookmarks_version";
++
++inline constexpr char kHeliumSyncLastStatus[] =
++    "helium.services.sync_last_status";
++
++inline constexpr char kHeliumSyncLastTime[] =
++    "helium.services.sync_last_time";
+ }  // namespace prefs
+ 
+ #endif  // COMPONENTS_HELIUM_SERVICES_PREF_NAMES_H_
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -252,6 +252,14 @@
+     registry->RegisterBooleanPref(prefs::kHeliumServicesConsented, false);
+     registry->RegisterBooleanPref(prefs::kHeliumUpdateFetchingEnabled, true);
+     registry->RegisterBooleanPref(prefs::kHeliumUBlockAssetsEnabled, true);
++    registry->RegisterBooleanPref(prefs::kHeliumSyncEnabled, false);
++    registry->RegisterStringPref(prefs::kHeliumSyncToken, "");
++    registry->RegisterBooleanPref(prefs::kHeliumSyncExtensionsEnabled, true);
++    registry->RegisterBooleanPref(prefs::kHeliumSyncBookmarksEnabled, true);
++    registry->RegisterIntegerPref(prefs::kHeliumSyncExtensionsVersion, 0);
++    registry->RegisterIntegerPref(prefs::kHeliumSyncBookmarksVersion, 0);
++    registry->RegisterIntegerPref(prefs::kHeliumSyncLastStatus, 0);
++    registry->RegisterDoublePref(prefs::kHeliumSyncLastTime, 0);
+   }
+ 
+   registry->RegisterBooleanPref(
+--- a/components/helium_services/helium_services_helpers.cc
++++ b/components/helium_services/helium_services_helpers.cc
+@@ -113,6 +113,12 @@
+             prefs.GetBoolean(prefs::kHeliumUBlockAssetsEnabled);
+ }
+ 
++bool ShouldSync(const PrefService& prefs) {
++    return ShouldAccessServices(prefs) &&
++            prefs.GetBoolean(prefs::kHeliumSyncEnabled) &&
++            !prefs.GetString(prefs::kHeliumSyncToken).empty();
++}
++
+ GURL GetExtensionUpdateURL(const PrefService& prefs) {
+     if (!ShouldAccessExtensionService(prefs)) {
+         return GetDummyURL();
+@@ -172,6 +178,15 @@
+     return GetServicesBaseURL(prefs).Resolve("/ubo/assets.json");
+ }
+ 
++GURL GetSyncCollectionURL(const PrefService& prefs, std::string_view collection) {
++    if (!ShouldSync(prefs)) {
++        return GetDummyURL();
++    }
++
++    return GetServicesBaseURL(prefs).Resolve(
++        base::StringPrintf("/sync/%s", collection));
++}
++
+ void ConfigurePrefChangeRegistrarFor(std::string_view pref_name,
+     PrefChangeRegistrar& registrar, const base::RepeatingClosure& observer) {
+   registrar.Add(prefs::kHeliumServicesEnabled, observer);
+--- a/components/helium_services/helium_services_helpers.h
++++ b/components/helium_services/helium_services_helpers.h
+@@ -25,6 +25,7 @@
+ COMPONENT_EXPORT(HELIUM) bool ShouldAccessUpdateService(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) bool ShouldAccessComponentUpdateService(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) bool ShouldAccessUBlockAssets(const PrefService& prefs);
++COMPONENT_EXPORT(HELIUM) bool ShouldSync(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) GURL GetServicesBaseURL(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) GURL GetDummyURL();
+ COMPONENT_EXPORT(HELIUM) GURL GetExtensionUpdateURL(const PrefService& prefs);
+@@ -33,6 +34,7 @@
+ COMPONENT_EXPORT(HELIUM) GURL GetBrowserUpdateURL(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) GURL GetComponentUpdateURL(const PrefService* prefs);
+ COMPONENT_EXPORT(HELIUM) GURL GetUBlockAssetsURL(const PrefService& prefs);
++COMPONENT_EXPORT(HELIUM) GURL GetSyncCollectionURL(const PrefService& prefs, std::string_view collection);
+ COMPONENT_EXPORT(HELIUM) std::optional<GURL> GetValidUserOverridenURL(std::string_view user_url_);
+ COMPONENT_EXPORT(HELIUM) void ConfigurePrefChangeRegistrarFor(std::string_view pref_name,
+                             PrefChangeRegistrar& registrar, const base::RepeatingClosure& observer);
