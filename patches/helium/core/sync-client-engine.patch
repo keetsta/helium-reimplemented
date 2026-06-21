@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/components/helium_sync/helium_sync_service.h
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,123 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -40,8 +40,9 @@
 +// self-hosted sync service (`{origin}/sync/{collection}`).
 +//
 +// This is intentionally conservative because it touches user data:
-+//   - Bookmarks are additive only. Remote bookmarks missing locally are added;
-+//     local bookmarks are never deleted to mirror the server.
++//   - Bookmarks are additive only. Remote bookmarks missing locally are added
++//     in their original location (same root and folder path, folders created
++//     as needed); local bookmarks are never deleted to mirror the server.
 +//   - Extensions are reported, not silently installed. The set of synced
 +//     extension ids is uploaded, and remote ids missing locally are exposed
 +//     via GetMissingExtensions() so the UI can offer a user-initiated install.
@@ -125,14 +126,13 @@
 +#endif  // COMPONENTS_HELIUM_SYNC_HELIUM_SYNC_SERVICE_H_
 --- /dev/null
 +++ b/components/helium_sync/helium_sync_service.cc
-@@ -0,0 +1,423 @@
+@@ -0,0 +1,454 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
 +
 +#include "components/helium_sync/helium_sync_service.h"
 +
-+#include <set>
 +#include <utility>
 +
 +#include "base/functional/bind.h"
@@ -165,9 +165,11 @@
 +constexpr int kFetchTimeoutSeconds = 30;
 +constexpr size_t kMaxResponseBytes = 1024 * 1024;  // mirrors server cap
 +
-+// Title of the folder synced bookmarks are added into. Kept stable so repeated
-+// syncs reuse the same folder instead of creating duplicates.
-+constexpr char16_t kSyncedFolderTitle[] = u"Synced";
++// Identifies which permanent folder a bookmark lives under, so it can be
++// restored to the same root on another device.
++constexpr char kRootBar[] = "bar";
++constexpr char kRootOther[] = "other";
++constexpr char kRootMobile[] = "mobile";
 +
 +constexpr net::NetworkTrafficAnnotationTag kSyncTrafficTag =
 +    net::DefineNetworkTrafficAnnotation("helium_sync", R"(
@@ -447,26 +449,39 @@
 +    return list;
 +  }
 +
-+  // Flatten every bookmark URL into {title, url}. Folder structure is not
-+  // preserved; synced bookmarks land in a single "Synced" folder on apply.
-+  std::vector<const bookmarks::BookmarkNode*> stack;
-+  stack.push_back(bookmark_model_->bookmark_bar_node());
-+  stack.push_back(bookmark_model_->other_node());
-+  if (bookmark_model_->mobile_node()) {
-+    stack.push_back(bookmark_model_->mobile_node());
-+  }
++  // Each permanent root is walked recursively, recording every bookmark as
++  // {root, path, title, url} so its folder location can be recreated exactly
++  // on another device.
++  struct Frame {
++    const bookmarks::BookmarkNode* node;
++    std::string root;
++    base::Value::List path;
++  };
++
++  std::vector<Frame> stack;
++  auto push_root = [&](const bookmarks::BookmarkNode* node,
++                       const std::string& root) {
++    if (node) {
++      stack.push_back({node, root, base::Value::List()});
++    }
++  };
++  push_root(bookmark_model_->bookmark_bar_node(), kRootBar);
++  push_root(bookmark_model_->other_node(), kRootOther);
++  push_root(bookmark_model_->mobile_node(), kRootMobile);
 +
 +  while (!stack.empty()) {
-+    const bookmarks::BookmarkNode* node = stack.back();
++    Frame frame = std::move(stack.back());
 +    stack.pop_back();
-+    if (!node) {
-+      continue;
-+    }
-+    for (const auto& child : node->children()) {
++
++    for (const auto& child : frame.node->children()) {
 +      if (child->is_folder()) {
-+        stack.push_back(child.get());
++        base::Value::List child_path = frame.path.Clone();
++        child_path.Append(base::UTF16ToUTF8(child->GetTitle()));
++        stack.push_back({child.get(), frame.root, std::move(child_path)});
 +      } else if (child->is_url()) {
 +        base::Value::Dict entry;
++        entry.Set("root", frame.root);
++        entry.Set("path", frame.path.Clone());
 +        entry.Set("title", base::UTF16ToUTF8(child->GetTitle()));
 +        entry.Set("url", child->url().spec());
 +        list.Append(std::move(entry));
@@ -481,37 +496,41 @@
 +    return;
 +  }
 +
-+  // Gather the set of URLs already present locally so we only add new ones.
-+  std::set<std::string> existing;
-+  std::vector<const bookmarks::BookmarkNode*> stack = {
-+      bookmark_model_->bookmark_bar_node(), bookmark_model_->other_node()};
-+  if (bookmark_model_->mobile_node()) {
-+    stack.push_back(bookmark_model_->mobile_node());
-+  }
-+  while (!stack.empty()) {
-+    const bookmarks::BookmarkNode* node = stack.back();
-+    stack.pop_back();
-+    if (!node) {
-+      continue;
++  auto root_for = [&](const std::string& name) -> const bookmarks::BookmarkNode* {
++    if (name == kRootBar) {
++      return bookmark_model_->bookmark_bar_node();
 +    }
-+    for (const auto& child : node->children()) {
-+      if (child->is_folder()) {
-+        stack.push_back(child.get());
-+      } else if (child->is_url()) {
-+        existing.insert(child->url().spec());
-+      }
++    if (name == kRootMobile) {
++      return bookmark_model_->mobile_node();
 +    }
-+  }
++    return bookmark_model_->other_node();
++  };
 +
-+  // Find or create the "Synced" folder under other_node.
-+  const bookmarks::BookmarkNode* synced_folder = nullptr;
-+  const bookmarks::BookmarkNode* other = bookmark_model_->other_node();
-+  for (const auto& child : other->children()) {
-+    if (child->is_folder() && child->GetTitle() == kSyncedFolderTitle) {
-+      synced_folder = child.get();
-+      break;
++  // Walks/creates the folder path under `root`, returning the target folder.
++  auto resolve_folder =
++      [&](const bookmarks::BookmarkNode* root,
++          const base::Value::List& path) -> const bookmarks::BookmarkNode* {
++    const bookmarks::BookmarkNode* current = root;
++    for (const base::Value& segment : path) {
++      if (!segment.is_string()) {
++        continue;
++      }
++      std::u16string title = base::UTF8ToUTF16(segment.GetString());
++      const bookmarks::BookmarkNode* next = nullptr;
++      for (const auto& child : current->children()) {
++        if (child->is_folder() && child->GetTitle() == title) {
++          next = child.get();
++          break;
++        }
++      }
++      if (!next) {
++        next = bookmark_model_->AddFolder(current, current->children().size(),
++                                          title);
++      }
++      current = next;
 +    }
-+  }
++    return current;
++  };
 +
 +  for (const base::Value& value : remote) {
 +    if (!value.is_dict()) {
@@ -520,22 +539,35 @@
 +    const base::Value::Dict& dict = value.GetDict();
 +    const std::string* url_str = dict.FindString("url");
 +    const std::string* title = dict.FindString("title");
++    const std::string* root_name = dict.FindString("root");
++    const base::Value::List* path = dict.FindList("path");
 +    if (!url_str) {
 +      continue;
 +    }
 +    GURL url(*url_str);
-+    if (!url.is_valid() || existing.count(url.spec())) {
++    if (!url.is_valid()) {
 +      continue;
 +    }
 +
-+    if (!synced_folder) {
-+      synced_folder = bookmark_model_->AddFolder(
-+          other, other->children().size(), kSyncedFolderTitle);
++    const bookmarks::BookmarkNode* target = resolve_folder(
++        root_for(root_name ? *root_name : kRootOther),
++        path ? *path : base::Value::List());
++
++    // Dedupe within the target folder only, so the same url can legitimately
++    // exist in different folders.
++    bool already_present = false;
++    for (const auto& child : target->children()) {
++      if (child->is_url() && child->url() == url) {
++        already_present = true;
++        break;
++      }
 +    }
-+    bookmark_model_->AddURL(
-+        synced_folder, synced_folder->children().size(),
-+        base::UTF8ToUTF16(title ? *title : *url_str), url);
-+    existing.insert(url.spec());
++    if (already_present) {
++      continue;
++    }
++
++    bookmark_model_->AddURL(target, target->children().size(),
++                            base::UTF8ToUTF16(title ? *title : *url_str), url);
 +  }
 +}
 +
