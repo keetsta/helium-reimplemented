@@ -1,0 +1,925 @@
+--- /dev/null
++++ b/chrome/browser/helium_sendtab/helium_sendtab_service.h
+@@ -0,0 +1,130 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_HELIUM_SENDTAB_HELIUM_SENDTAB_SERVICE_H_
++#define CHROME_BROWSER_HELIUM_SENDTAB_HELIUM_SENDTAB_SERVICE_H_
++
++#include <memory>
++#include <string>
++#include <vector>
++
++#include "base/functional/callback.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/timer/timer.h"
++#include "base/values.h"
++#include "components/keyed_service/core/keyed_service.h"
++#include "components/prefs/pref_change_registrar.h"
++#include "url/gurl.h"
++
++class PrefService;
++class Profile;
++
++namespace network {
++class SharedURLLoaderFactory;
++class SimpleURLLoader;
++}  // namespace network
++
++namespace helium {
++
++// Send-tab-to-device over the self-hosted services instance.
++//
++// Delivery is near-instant via long-poll, with no push server or WebSocket:
++//   - Each device has an inbox at {origin}/sync/sendtab/<deviceId>. Sending a
++//     tab POSTs it there; the server appends it and bumps a sequence number.
++//   - To receive, the device holds a long-poll GET open against its own inbox
++//     (?after=<lastSeq>). The server (via Deno kv.watch) replies the instant a
++//     tab is enqueued, or with 204 after a timeout, at which point we re-poll.
++//   - A separate device registry blob at {origin}/sync/tabs lets devices learn
++//     each other's names; it is refreshed on a slow timer.
++//
++// Safety: an incoming tab is never opened silently unless the user chose
++// auto-open (kHeliumSendTabReceiveMode); otherwise it shows a notification that
++// opens the tab on click. The persisted inbox sequence guarantees a tab is
++// delivered at most once, even across restarts.
++class HeliumSendTabService : public KeyedService {
++ public:
++  struct Device {
++    std::string id;
++    std::string name;
++  };
++
++  HeliumSendTabService(
++      Profile* profile,
++      PrefService* prefs,
++      scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory);
++  HeliumSendTabService(const HeliumSendTabService&) = delete;
++  HeliumSendTabService& operator=(const HeliumSendTabService&) = delete;
++  ~HeliumSendTabService() override;
++
++  // Known peer devices (registry minus this device), from the last refresh.
++  std::vector<Device> GetDevices() const;
++
++  // POSTs `url`/`title` to the inbox of the device with id `device_id`.
++  void SendTab(const std::string& device_id,
++               const GURL& url,
++               const std::u16string& title);
++
++  // KeyedService:
++  void Shutdown() override;
++
++ private:
++  // Starts/stops the registry refresh and the inbox long-poll loop based on
++  // whether send-tab is currently enabled.
++  void Restart();
++  void Stop();
++
++  // Device registry (slow timer): publish our entry, read peers.
++  void RefreshRegistry();
++  void OnRegistryFetched(std::unique_ptr<network::SimpleURLLoader> loader,
++                         std::optional<std::string> body);
++  void PushRegistry(int base_version, base::DictValue data);
++  void OnRegistryPushed(std::unique_ptr<network::SimpleURLLoader> loader,
++                        std::optional<std::string> body);
++  void ScheduleRegistryRefresh();
++
++  // Inbox long-poll loop: one outstanding GET at a time; on completion deliver
++  // and immediately re-arm.
++  void PollInbox();
++  void OnInboxResponse(std::unique_ptr<network::SimpleURLLoader> loader,
++                       std::optional<std::string> body);
++
++  void OnSendResponse(std::unique_ptr<network::SimpleURLLoader> loader,
++                      std::optional<std::string> body);
++
++  // Surfaces one received tab per the receive-mode pref.
++  void DeliverTab(const std::string& from_name,
++                  const GURL& url,
++                  const std::u16string& title);
++  void OpenTab(const GURL& url);
++
++  std::string DeviceId();    // ours; lazily generated + persisted
++  std::string DeviceName();  // ours; user pref or a platform default
++
++  void OnPrefChanged();
++  // When the user turns sync on, default send-tab on too. Fires only on the
++  // sync-enabled transition, so turning send-tab off afterwards is respected.
++  void OnSyncEnabledChanged();
++
++  raw_ptr<Profile> profile_;
++  raw_ptr<PrefService> prefs_;
++  scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
++
++  PrefChangeRegistrar pref_change_registrar_;
++  base::OneShotTimer registry_timer_;
++  base::OneShotTimer inbox_backoff_timer_;
++  std::vector<Device> devices_;
++
++  // True while send-tab is enabled; gates the long-poll loop and the registry
++  // timer. A single inbox long-poll is kept in flight at a time, tracked by
++  // `inbox_in_flight_` so we never run two concurrent loops.
++  bool running_ = false;
++  bool inbox_in_flight_ = false;
++
++  base::WeakPtrFactory<HeliumSendTabService> weak_factory_{this};
++};
++
++}  // namespace helium
++
++#endif  // CHROME_BROWSER_HELIUM_SENDTAB_HELIUM_SENDTAB_SERVICE_H_
+--- /dev/null
++++ b/chrome/browser/helium_sendtab/helium_sendtab_service.cc
+@@ -0,0 +1,510 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#include "chrome/browser/helium_sendtab/helium_sendtab_service.h"
++
++#include <utility>
++#include <vector>
++
++#include "base/functional/bind.h"
++#include "base/json/json_reader.h"
++#include "base/json/json_writer.h"
++#include "base/logging.h"
++#include "base/strings/stringprintf.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/time/time.h"
++#include "base/uuid.h"
++#include "chrome/browser/notifications/notification_display_service.h"
++#include "chrome/browser/notifications/notification_display_service_factory.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/ui/navigator/browser_navigator.h"
++#include "chrome/browser/ui/navigator/browser_navigator_params.h"
++#include "components/helium_services/helium_services_helpers.h"
++#include "components/helium_services/pref_names.h"
++#include "components/prefs/pref_service.h"
++#include "net/base/load_flags.h"
++#include "net/traffic_annotation/network_traffic_annotation.h"
++#include "services/network/public/cpp/resource_request.h"
++#include "services/network/public/cpp/shared_url_loader_factory.h"
++#include "services/network/public/cpp/simple_url_loader.h"
++#include "services/network/public/mojom/url_response_head.mojom.h"
++#include "ui/base/page_transition_types.h"
++#include "ui/base/window_open_disposition.h"
++#include "ui/message_center/public/cpp/notification.h"
++#include "ui/message_center/public/cpp/notification_delegate.h"
++#include "ui/message_center/public/cpp/notifier_id.h"
++
++namespace helium {
++
++namespace {
++
++constexpr size_t kMaxResponseBytes = 256 * 1024;
++// The long-poll holds the connection open server-side (~25s); allow margin.
++constexpr int kInboxTimeoutSeconds = 35;
++constexpr int kRegistryTimeoutSeconds = 30;
++// Re-advertise our presence in the registry on this cadence.
++constexpr int kRegistryRefreshSeconds = 60 * 5;
++// After a transient inbox error, wait before re-arming so we don't hot-loop.
++constexpr int kInboxBackoffSeconds = 10;
++
++constexpr int kDeviceStaleSeconds = 60 * 60 * 24 * 30;  // 30 days
++
++constexpr char kDevicesKey[] = "devices";
++constexpr char kNameKey[] = "name";
++constexpr char kLastSeenKey[] = "lastSeen";
++constexpr char kFromKey[] = "from";
++constexpr char kFromNameKey[] = "fromName";
++constexpr char kToKey[] = "to";
++constexpr char kTitleKey[] = "title";
++constexpr char kUrlKey[] = "url";
++constexpr char kSeqKey[] = "seq";
++constexpr char kItemsKey[] = "items";
++
++constexpr char kNotifierId[] = "helium.sendtab";
++
++constexpr net::NetworkTrafficAnnotationTag kSendTabTrafficTag =
++    net::DefineNetworkTrafficAnnotation("helium_sendtab", R"(
++        semantics {
++            sender: "Helium send tab to device"
++            description:
++                "Reads and writes a small per-user mailbox on the self-hosted "
++                "Helium services instance so the user can push an open tab to "
++                "another of their own devices, and holds a long-poll request "
++                "open to receive tabs sent to this device."
++            trigger:
++                "While enabled, a long-poll request is kept open to receive "
++                "tabs; a request is also sent when the user picks a device "
++                "from the tab context menu."
++            data:
++                "A user-chosen bearer token, this device's chosen name, and the "
++                "title and url of a tab the user explicitly sends."
++            destination: OTHER
++        }
++        policy {
++            cookies_allowed: NO
++            setting: "Controlled by the Helium services send-to-device toggle."
++        })");
++
++double Now() {
++  return base::Time::Now().InSecondsFSinceUnixEpoch();
++}
++
++std::unique_ptr<network::ResourceRequest> MakeRequest(const GURL& url,
++                                                      const std::string& method,
++                                                      const std::string& token) {
++  auto request = std::make_unique<network::ResourceRequest>();
++  request->url = url;
++  request->method = method;
++  request->load_flags = net::LOAD_DISABLE_CACHE;
++  request->credentials_mode = network::mojom::CredentialsMode::kOmit;
++  request->headers.SetHeader("Authorization", "Bearer " + token);
++  return request;
++}
++
++}  // namespace
++
++HeliumSendTabService::HeliumSendTabService(
++    Profile* profile,
++    PrefService* prefs,
++    scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory)
++    : profile_(profile),
++      prefs_(prefs),
++      url_loader_factory_(std::move(url_loader_factory)) {
++  pref_change_registrar_.Init(prefs_);
++  helium::ConfigurePrefChangeRegistrarFor(
++      prefs::kHeliumSendTabEnabled, pref_change_registrar_,
++      base::BindRepeating(&HeliumSendTabService::OnPrefChanged,
++                          weak_factory_.GetWeakPtr()));
++  pref_change_registrar_.Add(
++      prefs::kHeliumSyncToken,
++      base::BindRepeating(&HeliumSendTabService::OnPrefChanged,
++                          weak_factory_.GetWeakPtr()));
++  pref_change_registrar_.Add(
++      prefs::kHeliumSendTabName,
++      base::BindRepeating(&HeliumSendTabService::OnPrefChanged,
++                          weak_factory_.GetWeakPtr()));
++  pref_change_registrar_.Add(
++      prefs::kHeliumSyncEnabled,
++      base::BindRepeating(&HeliumSendTabService::OnSyncEnabledChanged,
++                          weak_factory_.GetWeakPtr()));
++
++  if (helium::ShouldSendTab(*prefs_)) {
++    Restart();
++  }
++}
++
++HeliumSendTabService::~HeliumSendTabService() = default;
++
++void HeliumSendTabService::Shutdown() {
++  Stop();
++  pref_change_registrar_.RemoveAll();
++}
++
++void HeliumSendTabService::OnPrefChanged() {
++  if (helium::ShouldSendTab(*prefs_)) {
++    Restart();
++  } else {
++    Stop();
++  }
++}
++
++void HeliumSendTabService::OnSyncEnabledChanged() {
++  // Turning sync on opts the user into send-tab as well, as a sensible default.
++  // It's a one-way nudge: we only flip send-tab on when sync goes on, so an
++  // explicit later opt-out of send-tab is preserved. Turning sync off leaves
++  // send-tab untouched.
++  if (prefs_->GetBoolean(prefs::kHeliumSyncEnabled) &&
++      !prefs_->GetBoolean(prefs::kHeliumSendTabEnabled)) {
++    prefs_->SetBoolean(prefs::kHeliumSendTabEnabled, true);
++    // The pref change re-enters OnPrefChanged(), which starts the loops.
++  }
++}
++
++void HeliumSendTabService::Restart() {
++  running_ = true;
++  RefreshRegistry();  // also schedules the next refresh
++  if (!inbox_in_flight_) {
++    PollInbox();
++  }
++}
++
++void HeliumSendTabService::Stop() {
++  running_ = false;
++  registry_timer_.Stop();
++  inbox_backoff_timer_.Stop();
++  // A long-poll already in flight will complete (or its callback will be
++  // dropped via the weak factory); running_ == false stops it re-arming.
++}
++
++std::string HeliumSendTabService::DeviceId() {
++  std::string id = prefs_->GetString(prefs::kHeliumSendTabId);
++  if (id.empty()) {
++    id = base::Uuid::GenerateRandomV4().AsLowercaseString();
++    prefs_->SetString(prefs::kHeliumSendTabId, id);
++  }
++  return id;
++}
++
++std::string HeliumSendTabService::DeviceName() {
++  std::string name = prefs_->GetString(prefs::kHeliumSendTabName);
++  if (!name.empty()) {
++    return name;
++  }
++#if BUILDFLAG(IS_WIN)
++  return "Windows device";
++#elif BUILDFLAG(IS_MAC)
++  return "Mac device";
++#else
++  return "Linux device";
++#endif
++}
++
++std::vector<HeliumSendTabService::Device> HeliumSendTabService::GetDevices()
++    const {
++  return devices_;
++}
++
++// --- Device registry --------------------------------------------------------
++
++void HeliumSendTabService::ScheduleRegistryRefresh() {
++  if (!running_) {
++    return;
++  }
++  registry_timer_.Start(FROM_HERE, base::Seconds(kRegistryRefreshSeconds),
++                        base::BindOnce(&HeliumSendTabService::RefreshRegistry,
++                                       weak_factory_.GetWeakPtr()));
++}
++
++void HeliumSendTabService::RefreshRegistry() {
++  GURL url = helium::GetSendTabURL(*prefs_);
++  if (!url.is_valid()) {
++    return;
++  }
++  auto request =
++      MakeRequest(url, "GET", prefs_->GetString(prefs::kHeliumSyncToken));
++  auto loader =
++      network::SimpleURLLoader::Create(std::move(request), kSendTabTrafficTag);
++  loader->SetTimeoutDuration(base::Seconds(kRegistryTimeoutSeconds));
++  auto* ptr = loader.get();
++  ptr->DownloadToString(
++      url_loader_factory_.get(),
++      base::BindOnce(&HeliumSendTabService::OnRegistryFetched,
++                     weak_factory_.GetWeakPtr(), std::move(loader)),
++      kMaxResponseBytes);
++}
++
++void HeliumSendTabService::OnRegistryFetched(
++    std::unique_ptr<network::SimpleURLLoader> loader,
++    std::optional<std::string> body) {
++  if (!body) {
++    ScheduleRegistryRefresh();
++    return;
++  }
++  auto parsed = base::JSONReader::ReadDict(*body, base::JSON_PARSE_RFC);
++  if (!parsed) {
++    ScheduleRegistryRefresh();
++    return;
++  }
++  int version = parsed->FindInt("version").value_or(0);
++  base::DictValue data;
++  if (const base::DictValue* d = parsed->FindDict("data")) {
++    data = d->Clone();
++  }
++
++  const std::string me = DeviceId();
++  const double now = Now();
++  base::DictValue* devices = data.EnsureDict(kDevicesKey);
++
++  base::DictValue self;
++  self.Set(kNameKey, DeviceName());
++  self.Set(kLastSeenKey, now);
++  devices->Set(me, std::move(self));
++
++  // Drop stale devices and rebuild our local peer list.
++  std::vector<std::string> stale;
++  devices_.clear();
++  for (auto pair : *devices) {
++    if (!pair.second.is_dict()) {
++      continue;
++    }
++    auto seen = pair.second.GetDict().FindDouble(kLastSeenKey);
++    if (seen && *seen < now - kDeviceStaleSeconds) {
++      stale.push_back(pair.first);
++      continue;
++    }
++    if (pair.first != me) {
++      const std::string* name = pair.second.GetDict().FindString(kNameKey);
++      devices_.push_back({pair.first, name ? *name : pair.first});
++    }
++  }
++  for (const std::string& id : stale) {
++    devices->Remove(id);
++  }
++
++  PushRegistry(version, std::move(data));
++}
++
++void HeliumSendTabService::PushRegistry(int base_version, base::DictValue data) {
++  GURL url = helium::GetSendTabURL(*prefs_);
++  if (!url.is_valid()) {
++    ScheduleRegistryRefresh();
++    return;
++  }
++  base::DictValue payload;
++  payload.Set("baseVersion", base_version);
++  payload.Set("data", std::move(data));
++  std::string out;
++  base::JSONWriter::Write(payload, &out);
++
++  auto request =
++      MakeRequest(url, "PUT", prefs_->GetString(prefs::kHeliumSyncToken));
++  request->headers.SetHeader("Content-Type", "application/json");
++  auto loader =
++      network::SimpleURLLoader::Create(std::move(request), kSendTabTrafficTag);
++  loader->SetTimeoutDuration(base::Seconds(kRegistryTimeoutSeconds));
++  loader->AttachStringForUpload(out, "application/json");
++  auto* ptr = loader.get();
++  ptr->DownloadToString(
++      url_loader_factory_.get(),
++      base::BindOnce(&HeliumSendTabService::OnRegistryPushed,
++                     weak_factory_.GetWeakPtr(), std::move(loader)),
++      kMaxResponseBytes);
++}
++
++void HeliumSendTabService::OnRegistryPushed(
++    std::unique_ptr<network::SimpleURLLoader> loader,
++    std::optional<std::string> body) {
++  // A 409 just means another device updated the registry concurrently; the
++  // next scheduled refresh re-reads and re-applies. Nothing else to do.
++  ScheduleRegistryRefresh();
++}
++
++// --- Inbox long-poll --------------------------------------------------------
++
++void HeliumSendTabService::PollInbox() {
++  if (!running_ || inbox_in_flight_) {
++    return;
++  }
++  GURL url = helium::GetSendTabInboxURL(*prefs_, DeviceId());
++  if (!url.is_valid()) {
++    return;
++  }
++  int after = prefs_->GetInteger(prefs::kHeliumSendTabInboxSeq);
++  GURL polled = GURL(url.spec() + base::StringPrintf("?after=%d", after));
++
++  auto request =
++      MakeRequest(polled, "GET", prefs_->GetString(prefs::kHeliumSyncToken));
++  auto loader =
++      network::SimpleURLLoader::Create(std::move(request), kSendTabTrafficTag);
++  loader->SetTimeoutDuration(base::Seconds(kInboxTimeoutSeconds));
++  inbox_in_flight_ = true;
++  auto* ptr = loader.get();
++  ptr->DownloadToString(
++      url_loader_factory_.get(),
++      base::BindOnce(&HeliumSendTabService::OnInboxResponse,
++                     weak_factory_.GetWeakPtr(), std::move(loader)),
++      kMaxResponseBytes);
++}
++
++void HeliumSendTabService::OnInboxResponse(
++    std::unique_ptr<network::SimpleURLLoader> loader,
++    std::optional<std::string> body) {
++  inbox_in_flight_ = false;
++  if (!running_) {
++    return;
++  }
++
++  int response_code = -1;
++  if (loader->ResponseInfo() && loader->ResponseInfo()->headers) {
++    response_code = loader->ResponseInfo()->headers->response_code();
++  }
++
++  // 204 = long-poll timed out with nothing new: re-arm immediately.
++  if (response_code == 204) {
++    PollInbox();
++    return;
++  }
++
++  // Any transport error or unexpected status: back off, then re-arm.
++  if (!body || response_code != 200) {
++    inbox_backoff_timer_.Start(
++        FROM_HERE, base::Seconds(kInboxBackoffSeconds),
++        base::BindOnce(&HeliumSendTabService::PollInbox,
++                       weak_factory_.GetWeakPtr()));
++    return;
++  }
++
++  auto parsed = base::JSONReader::ReadDict(*body, base::JSON_PARSE_RFC);
++  if (parsed) {
++    int seq = parsed->FindInt(kSeqKey).value_or(0);
++    const base::ListValue* items = parsed->FindList(kItemsKey);
++    if (items) {
++      for (const base::Value& item : *items) {
++        if (!item.is_dict()) {
++          continue;
++        }
++        const base::DictValue& msg = item.GetDict();
++        const std::string* url_str = msg.FindString(kUrlKey);
++        if (!url_str) {
++          continue;
++        }
++        GURL url(*url_str);
++        if (!url.is_valid()) {
++          continue;
++        }
++        const std::string* from_name = msg.FindString(kFromNameKey);
++        const std::string* title = msg.FindString(kTitleKey);
++        DeliverTab(from_name ? *from_name : std::string(), url,
++                   base::UTF8ToUTF16(title ? *title : std::string()));
++      }
++    }
++    // Persist progress so a restart doesn't redeliver these tabs.
++    if (seq > prefs_->GetInteger(prefs::kHeliumSendTabInboxSeq)) {
++      prefs_->SetInteger(prefs::kHeliumSendTabInboxSeq, seq);
++    }
++  }
++
++  PollInbox();  // immediately re-arm the long-poll
++}
++
++// --- Sending ----------------------------------------------------------------
++
++void HeliumSendTabService::SendTab(const std::string& device_id,
++                                   const GURL& url,
++                                   const std::u16string& title) {
++  if (!helium::ShouldSendTab(*prefs_) || !url.is_valid() ||
++      device_id.empty()) {
++    return;
++  }
++  GURL inbox = helium::GetSendTabInboxURL(*prefs_, device_id);
++  if (!inbox.is_valid()) {
++    return;
++  }
++
++  base::DictValue msg;
++  msg.Set(kFromKey, DeviceId());
++  msg.Set(kFromNameKey, DeviceName());
++  msg.Set(kToKey, device_id);
++  msg.Set(kUrlKey, url.spec());
++  msg.Set(kTitleKey, base::UTF16ToUTF8(title));
++  std::string out;
++  base::JSONWriter::Write(msg, &out);
++
++  auto request =
++      MakeRequest(inbox, "POST", prefs_->GetString(prefs::kHeliumSyncToken));
++  request->headers.SetHeader("Content-Type", "application/json");
++  auto loader =
++      network::SimpleURLLoader::Create(std::move(request), kSendTabTrafficTag);
++  loader->SetTimeoutDuration(base::Seconds(kRegistryTimeoutSeconds));
++  loader->AttachStringForUpload(out, "application/json");
++  auto* ptr = loader.get();
++  ptr->DownloadToString(
++      url_loader_factory_.get(),
++      base::BindOnce(&HeliumSendTabService::OnSendResponse,
++                     weak_factory_.GetWeakPtr(), std::move(loader)),
++      kMaxResponseBytes);
++}
++
++void HeliumSendTabService::OnSendResponse(
++    std::unique_ptr<network::SimpleURLLoader> loader,
++    std::optional<std::string> body) {
++  int response_code = -1;
++  if (loader->ResponseInfo() && loader->ResponseInfo()->headers) {
++    response_code = loader->ResponseInfo()->headers->response_code();
++  }
++  if (response_code != 200) {
++    LOG(ERROR) << "helium_sendtab: send failed, code = " << response_code;
++  }
++}
++
++// --- Delivery ---------------------------------------------------------------
++
++void HeliumSendTabService::DeliverTab(const std::string& from_name,
++                                      const GURL& url,
++                                      const std::u16string& title) {
++  const bool auto_open =
++      prefs_->GetInteger(prefs::kHeliumSendTabReceiveMode) == 1;
++  if (auto_open) {
++    OpenTab(url);
++    return;
++  }
++
++  std::u16string source =
++      from_name.empty() ? u"Helium" : base::UTF8ToUTF16(from_name);
++  std::u16string heading = title.empty() ? base::UTF8ToUTF16(url.spec()) : title;
++
++  message_center::RichNotificationData rich;
++  auto delegate =
++      base::MakeRefCounted<message_center::HandleNotificationClickDelegate>(
++          base::BindRepeating(
++              [](base::WeakPtr<HeliumSendTabService> self, GURL url,
++                 std::optional<int>) {
++                if (self) {
++                  self->OpenTab(url);
++                }
++              },
++              weak_factory_.GetWeakPtr(), url));
++
++  std::string id =
++      "helium-sendtab-" + base::Uuid::GenerateRandomV4().AsLowercaseString();
++  message_center::Notification notification(
++      message_center::NOTIFICATION_TYPE_SIMPLE, id, heading,
++      /*message=*/source, ui::ImageModel(),
++      /*display_source=*/u"Helium", url,
++      message_center::NotifierId(message_center::NotifierType::SYSTEM_COMPONENT,
++                                 kNotifierId),
++      rich, std::move(delegate));
++
++  NotificationDisplayServiceFactory::GetForProfile(profile_)->Display(
++      NotificationHandler::Type::TRANSIENT, notification,
++      /*metadata=*/nullptr);
++}
++
++void HeliumSendTabService::OpenTab(const GURL& url) {
++  NavigateParams params(profile_, url, ui::PAGE_TRANSITION_LINK);
++  params.disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
++  Navigate(&params);
++}
++
++}  // namespace helium
+--- /dev/null
++++ b/chrome/browser/helium_sendtab/helium_sendtab_service_factory.h
+@@ -0,0 +1,40 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_HELIUM_SENDTAB_HELIUM_SENDTAB_SERVICE_FACTORY_H_
++#define CHROME_BROWSER_HELIUM_SENDTAB_HELIUM_SENDTAB_SERVICE_FACTORY_H_
++
++#include "base/no_destructor.h"
++#include "chrome/browser/profiles/profile_keyed_service_factory.h"
++
++class Profile;
++
++namespace helium {
++
++class HeliumSendTabService;
++
++class HeliumSendTabServiceFactory : public ProfileKeyedServiceFactory {
++ public:
++  static HeliumSendTabService* GetForProfile(Profile* profile);
++  static HeliumSendTabServiceFactory* GetInstance();
++
++  HeliumSendTabServiceFactory(const HeliumSendTabServiceFactory&) = delete;
++  HeliumSendTabServiceFactory& operator=(const HeliumSendTabServiceFactory&) =
++      delete;
++
++ private:
++  friend base::NoDestructor<HeliumSendTabServiceFactory>;
++
++  HeliumSendTabServiceFactory();
++  ~HeliumSendTabServiceFactory() override;
++
++  // BrowserContextKeyedServiceFactory:
++  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
++      content::BrowserContext* context) const override;
++  bool ServiceIsCreatedWithBrowserContext() const override;
++};
++
++}  // namespace helium
++
++#endif  // CHROME_BROWSER_HELIUM_SENDTAB_HELIUM_SENDTAB_SERVICE_FACTORY_H_
+--- /dev/null
++++ b/chrome/browser/helium_sendtab/helium_sendtab_service_factory.cc
+@@ -0,0 +1,50 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#include "chrome/browser/helium_sendtab/helium_sendtab_service_factory.h"
++
++#include "chrome/browser/helium_sendtab/helium_sendtab_service.h"
++#include "chrome/browser/notifications/notification_display_service_factory.h"
++#include "chrome/browser/profiles/profile.h"
++#include "content/public/browser/browser_context.h"
++#include "content/public/browser/storage_partition.h"
++
++namespace helium {
++
++// static
++HeliumSendTabService* HeliumSendTabServiceFactory::GetForProfile(
++    Profile* profile) {
++  return static_cast<HeliumSendTabService*>(
++      GetInstance()->GetServiceForBrowserContext(profile, /*create=*/true));
++}
++
++// static
++HeliumSendTabServiceFactory* HeliumSendTabServiceFactory::GetInstance() {
++  static base::NoDestructor<HeliumSendTabServiceFactory> instance;
++  return instance.get();
++}
++
++HeliumSendTabServiceFactory::HeliumSendTabServiceFactory()
++    : ProfileKeyedServiceFactory("HeliumSendTabService") {
++  DependsOn(NotificationDisplayServiceFactory::GetInstance());
++}
++
++HeliumSendTabServiceFactory::~HeliumSendTabServiceFactory() = default;
++
++std::unique_ptr<KeyedService>
++HeliumSendTabServiceFactory::BuildServiceInstanceForBrowserContext(
++    content::BrowserContext* context) const {
++  Profile* profile = Profile::FromBrowserContext(context);
++  return std::make_unique<HeliumSendTabService>(
++      profile, profile->GetPrefs(),
++      context->GetDefaultStoragePartition()
++          ->GetURLLoaderFactoryForBrowserProcess());
++}
++
++bool HeliumSendTabServiceFactory::ServiceIsCreatedWithBrowserContext() const {
++  // Create eagerly so polling starts without the UI having to instantiate it.
++  return true;
++}
++
++}  // namespace helium
+--- /dev/null
++++ b/chrome/browser/helium_sendtab/BUILD.gn
+@@ -0,0 +1,29 @@
++# Copyright 2025 The Helium Authors
++# You can use, redistribute, and/or modify this source code under
++# the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++source_set("helium_sendtab") {
++  sources = [
++    "helium_sendtab_service.cc",
++    "helium_sendtab_service.h",
++    "helium_sendtab_service_factory.cc",
++    "helium_sendtab_service_factory.h",
++  ]
++
++  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
++
++  deps = [
++    "//base",
++    "//chrome/browser/notifications",
++    "//chrome/browser/profiles:profile",
++    "//components/helium_services",
++    "//components/keyed_service/core",
++    "//components/prefs",
++    "//content/public/browser",
++    "//net",
++    "//services/network/public/cpp",
++    "//ui/base",
++    "//ui/message_center/public/cpp",
++    "//url",
++  ]
++}
+--- a/components/helium_services/pref_names.h
++++ b/components/helium_services/pref_names.h
+@@ -89,6 +89,29 @@
+
+ inline constexpr char kHeliumSyncBookmarkTrash[] =
+     "helium.services.sync_bookmark_trash";
++
++// Send-tab-to-device. Reuses the sync bearer token (kHeliumSyncToken) as the
++// shared namespace, but is gated by its own enable toggle. `kHeliumSendTabId`
++// is a random per-device id; `kHeliumSendTabName` is the user-visible device
++// name shown in other devices' "send to" menu. `kHeliumSendTabReceiveMode`
++// selects how an incoming tab is surfaced (0 = notify then open on click,
++// 1 = open automatically).
++inline constexpr char kHeliumSendTabEnabled[] =
++    "helium.services.sendtab";
++
++inline constexpr char kHeliumSendTabId[] =
++    "helium.services.sendtab_device_id";
++
++inline constexpr char kHeliumSendTabName[] =
++    "helium.services.sendtab_device_name";
++
++inline constexpr char kHeliumSendTabReceiveMode[] =
++    "helium.services.sendtab_receive_mode";
++
++// Highest inbox sequence number this device has already delivered. Sent with
++// each long-poll GET as ?after=, so the server only returns newer tabs.
++inline constexpr char kHeliumSendTabInboxSeq[] =
++    "helium.services.sendtab_inbox_seq";
+ }  // namespace prefs
+
+ #endif  // COMPONENTS_HELIUM_SERVICES_PREF_NAMES_H_
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -263,6 +263,11 @@
+     registry->RegisterDictionaryPref(prefs::kHeliumSyncBookmarkBaseline);
+     registry->RegisterDictionaryPref(prefs::kHeliumSyncExtensionBaseline);
+     registry->RegisterListPref(prefs::kHeliumSyncBookmarkTrash);
++    registry->RegisterBooleanPref(prefs::kHeliumSendTabEnabled, false);
++    registry->RegisterStringPref(prefs::kHeliumSendTabId, "");
++    registry->RegisterStringPref(prefs::kHeliumSendTabName, "");
++    registry->RegisterIntegerPref(prefs::kHeliumSendTabReceiveMode, 0);
++    registry->RegisterIntegerPref(prefs::kHeliumSendTabInboxSeq, 0);
+   }
+ 
+   registry->RegisterBooleanPref(
+--- a/components/helium_services/helium_services_helpers.cc
++++ b/components/helium_services/helium_services_helpers.cc
+@@ -118,6 +118,12 @@
+             prefs.GetBoolean(prefs::kHeliumSyncEnabled) &&
+             !prefs.GetString(prefs::kHeliumSyncToken).empty();
+ }
++
++bool ShouldSendTab(const PrefService& prefs) {
++    return ShouldAccessServices(prefs) &&
++            prefs.GetBoolean(prefs::kHeliumSendTabEnabled) &&
++            !prefs.GetString(prefs::kHeliumSyncToken).empty();
++}
+ 
+ GURL GetExtensionUpdateURL(const PrefService& prefs) {
+     if (!ShouldAccessExtensionService(prefs)) {
+@@ -192,6 +192,27 @@
+     return GetServicesBaseURL(prefs).Resolve(
+         base::StringPrintf("/sync/%s", collection));
+ }
++
++GURL GetSendTabURL(const PrefService& prefs) {
++    if (!ShouldSendTab(prefs)) {
++        return GetDummyURL();
++    }
++
++    // Reuses the sync service's storage; the "tabs" collection holds the device
++    // registry (who exists + their names).
++    return GetServicesBaseURL(prefs).Resolve("/sync/tabs");
++}
++
++GURL GetSendTabInboxURL(const PrefService& prefs, std::string_view device_id) {
++    if (!ShouldSendTab(prefs)) {
++        return GetDummyURL();
++    }
++
++    // Per-device long-poll inbox. nginx strips the /sync prefix, so this hits
++    // the sync service's /sendtab/<id> route.
++    return GetServicesBaseURL(prefs).Resolve(
++        base::StringPrintf("/sync/sendtab/%s", device_id));
++}
+ 
+ void ConfigurePrefChangeRegistrarFor(std::string_view pref_name,
+     PrefChangeRegistrar& registrar, const base::RepeatingClosure& observer) {
+--- a/components/helium_services/helium_services_helpers.h
++++ b/components/helium_services/helium_services_helpers.h
+@@ -26,6 +26,7 @@
+ COMPONENT_EXPORT(HELIUM) bool ShouldAccessComponentUpdateService(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) bool ShouldAccessUBlockAssets(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) bool ShouldSync(const PrefService& prefs);
++COMPONENT_EXPORT(HELIUM) bool ShouldSendTab(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) GURL GetServicesBaseURL(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) GURL GetDummyURL();
+ COMPONENT_EXPORT(HELIUM) GURL GetExtensionUpdateURL(const PrefService& prefs);
+@@ -36,6 +36,8 @@
+ COMPONENT_EXPORT(HELIUM) GURL GetComponentUpdateURL(const PrefService* prefs);
+ COMPONENT_EXPORT(HELIUM) GURL GetUBlockAssetsURL(const PrefService& prefs);
+ COMPONENT_EXPORT(HELIUM) GURL GetSyncCollectionURL(const PrefService& prefs, std::string_view collection);
++COMPONENT_EXPORT(HELIUM) GURL GetSendTabURL(const PrefService& prefs);
++COMPONENT_EXPORT(HELIUM) GURL GetSendTabInboxURL(const PrefService& prefs, std::string_view device_id);
+ COMPONENT_EXPORT(HELIUM) std::optional<GURL> GetValidUserOverridenURL(std::string_view user_url_);
+ COMPONENT_EXPORT(HELIUM) void ConfigurePrefChangeRegistrarFor(std::string_view pref_name,
+                             PrefChangeRegistrar& registrar, const base::RepeatingClosure& observer);
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -643,6 +643,7 @@
+     "//chrome/browser/google",
+     "//chrome/browser/headless:initializer",
+     "//chrome/browser/helium_sync",
++    "//chrome/browser/helium_sendtab",
+     "//chrome/browser/history",
+     "//chrome/browser/history:impl",
+     "//chrome/browser/history_embeddings",
+--- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
++++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
+@@ -112,6 +112,7 @@
+ #include "chrome/browser/glic/suggestions/contextual_cueing_service_factory.h"
+ #include "chrome/browser/heavy_ad_intervention/heavy_ad_service_factory.h"
+ #include "chrome/browser/helium_sync/helium_sync_service_factory.h"
++#include "chrome/browser/helium_sendtab/helium_sendtab_service_factory.h"
+ #include "chrome/browser/hid/hid_policy_allowed_devices_factory.h"
+ #include "chrome/browser/history/domain_diversity_reporter_factory.h"
+ #include "chrome/browser/history/history_service_factory.h"
+@@ -1040,6 +1040,7 @@
+   HatsServiceFactory::GetInstance();
+   HeavyAdServiceFactory::GetInstance();
+   helium::HeliumSyncServiceFactory::GetInstance();
++  helium::HeliumSendTabServiceFactory::GetInstance();
+ #if !BUILDFLAG(IS_ANDROID)
+   HidChooserContextFactory::GetInstance();
+   HidConnectionTrackerFactory::GetInstance();
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -454,6 +454,12 @@
+       settings_api::PrefType::kBoolean;
+   (*s_allowlist)[::prefs::kHeliumSyncBookmarksEnabled] =
+       settings_api::PrefType::kBoolean;
++  (*s_allowlist)[::prefs::kHeliumSendTabEnabled] =
++      settings_api::PrefType::kBoolean;
++  (*s_allowlist)[::prefs::kHeliumSendTabName] =
++      settings_api::PrefType::kString;
++  (*s_allowlist)[::prefs::kHeliumSendTabReceiveMode] =
++      settings_api::PrefType::kNumber;
+   (*s_allowlist)[::prefs::kHeliumServicesOrigin] =
+       settings_api::PrefType::kString;
+   (*s_allowlist)[::prefs::kHeliumServicesConsented] =

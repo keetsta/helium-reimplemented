@@ -1,0 +1,225 @@
+--- a/chrome/browser/resources/settings/privacy_page/services_page.html
++++ b/chrome/browser/resources/settings/privacy_page/services_page.html
+@@ -1,4 +1,4 @@
+-<style include="cr-shared-style settings-shared">
++<style include="cr-shared-style settings-shared md-select">
+     .label-wrapper {
+         padding: var(--cr-section-vertical-padding) 0;
+     }
+@@ -215,6 +215,51 @@
+                     </template>
+                 </cr-collapse>
+             </div>
++            <settings-toggle-button id="sendTabToggleButton"
++                pref="{{prefs.helium.services.sendtab}}"
++                label="$i18n{heliumSendTabToggle}"
++                sub-label="$i18n{heliumSendTabToggleDescription}">
++            </settings-toggle-button>
++            <div class="cr-col">
++                <cr-collapse id="sendTabCollapse"
++                    opened="[[prefs.helium.services.sendtab.value]]">
++                    <div class="cr-row">
++                      <div class="flex">
++                        <div class="flex label-wrapper">
++                            <div class="label">$i18n{heliumSendTabDeviceName}</div>
++                            <div class="cr-secondary-text label">
++                                $i18n{heliumSendTabDeviceNameDescription}
++                            </div>
++                        </div>
++                        <cr-input
++                            id="heliumSendTabDeviceName"
++                            value="[[prefs.helium.services.sendtab_device_name.value]]"
++                            on-change="onSendTabDeviceNameChange_"
++                            maxlength="64"
++                            aria-label="$i18n{heliumSendTabDeviceName}"
++                            spellcheck="false">
++                        </cr-input>
++                      </div>
++                    </div>
++                    <div class="cr-row">
++                      <div class="flex">
++                        <div class="flex label-wrapper">
++                            <div class="label">$i18n{heliumSendTabReceiveMode}</div>
++                            <div class="cr-secondary-text label">
++                                $i18n{heliumSendTabReceiveModeDescription}
++                            </div>
++                        </div>
++                        <select class="md-select"
++                            value="[[prefs.helium.services.sendtab_receive_mode.value]]"
++                            on-change="onSendTabReceiveModeChange_"
++                            aria-label="$i18n{heliumSendTabReceiveMode}">
++                            <option value="0">$i18n{heliumSendTabReceiveNotify}</option>
++                            <option value="1">$i18n{heliumSendTabReceiveOpen}</option>
++                        </select>
++                      </div>
++                    </div>
++                </cr-collapse>
++            </div>
+         </cr-collapse>
+     </div>
+     </template>
+--- a/chrome/browser/resources/settings/privacy_page/services_page.ts
++++ b/chrome/browser/resources/settings/privacy_page/services_page.ts
+@@ -232,6 +232,17 @@
+     }
+     this.setPrefValue('helium.services.sync_token', target.value);
+   }
++
++  private onSendTabDeviceNameChange_(event: Event) {
++    const target = event.target as CrInputElement;
++    this.setPrefValue('helium.services.sendtab_device_name', target.value);
++  }
++
++  private onSendTabReceiveModeChange_(event: Event) {
++    const target = event.target as HTMLSelectElement;
++    this.setPrefValue(
++        'helium.services.sendtab_receive_mode', Number(target.value));
++  }
+ 
+   private onGenerateSyncTokenClick_() {
+     const bytes = new Uint8Array(32);
+--- a/chrome/app/settings_strings.grdp
++++ b/chrome/app/settings_strings.grdp
+@@ -1922,6 +1922,30 @@
+     <message name="IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK" desc="Link to the source code of the Helium services server">
+       View the Helium Reimplemented services source code
+     </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB" desc="Toggle for enabling send-tab-to-device">
++      Send tabs to your devices
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DESCRIPTION" desc="Description of the send-tab-to-device toggle">
++      Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it.
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME" desc="Label for the device name input">
++      Device name
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME_DESCRIPTION" desc="Description of the device name input">
++      The name other devices see when choosing where to send a tab.
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE" desc="Label for the dropdown choosing how received tabs are handled">
++      When a tab arrives
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE_DESCRIPTION" desc="Description of the received-tab handling dropdown">
++      Choose whether an incoming tab shows a notification you click to open, or opens automatically.
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY" desc="Dropdown option: show a notification for an incoming tab">
++      Show a notification
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_OPEN" desc="Dropdown option: open an incoming tab automatically">
++      Open automatically
++    </message>
+     <message name="IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE" desc="Text input for overriding the Helium services server">
+       Use your own instance of Helium services
+     </message>
+--- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
++++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
+@@ -2337,6 +2337,21 @@
+       {"heliumSyncTrashEmptyConfirm",
+         IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM},
+       {"heliumServicesRepoLink", IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK},
++      {"heliumSendTabToggle", IDS_SETTINGS_HELIUM_SERVICES_SENDTAB},
++      {"heliumSendTabToggleDescription",
++        IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DESCRIPTION},
++      {"heliumSendTabDeviceName",
++        IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME},
++      {"heliumSendTabDeviceNameDescription",
++        IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME_DESCRIPTION},
++      {"heliumSendTabReceiveMode",
++        IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE},
++      {"heliumSendTabReceiveModeDescription",
++        IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE_DESCRIPTION},
++      {"heliumSendTabReceiveNotify",
++        IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY},
++      {"heliumSendTabReceiveOpen",
++        IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_OPEN},
+       {"heliumOriginOverride", IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE},
+       {"heliumOriginOverrideDescription",
+         IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION},
+--- a/components/helium_onboarding/helium_onboarding_strings.grdp
++++ b/components/helium_onboarding/helium_onboarding_strings.grdp
+@@ -90,6 +90,18 @@
+ <message name="IDS_HELIUM_ONBOARDING_SERVICES_UBLOCK_DESC" desc="Description of the toggle for downloading uBlock Origin filter lists.">
+   Helium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Helium. Optional filter lists will be requested without proxying.
+ </message>
++<message name="IDS_HELIUM_ONBOARDING_SERVICES_SYNC_TITLE" desc="Title of the toggle for cross-device sync of extensions and bookmarks.">
++  Sync extensions and bookmarks across your devices
++</message>
++<message name="IDS_HELIUM_ONBOARDING_SERVICES_SYNC_DESC" desc="Description of the cross-device sync toggle.">
++  Helium will sync your extension list and bookmarks across devices that share the same sync token, through your own services instance. Bookmarks are only ever added, never deleted automatically. Set your sync token in Helium settings.
++</message>
++<message name="IDS_HELIUM_ONBOARDING_SERVICES_SENDTAB_TITLE" desc="Title of the toggle for sending tabs between the user's own devices.">
++  Send tabs between your devices
++</message>
++<message name="IDS_HELIUM_ONBOARDING_SERVICES_SENDTAB_DESC" desc="Description of the send-tab-to-device toggle.">
++  Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it.
++</message>
+ <message name="IDS_HELIUM_ONBOARDING_SERVICES_AUTOUPDATES_TITLE" desc="Title of the toggle for automatic browser updates on platforms where Helium updates the browser.">
+   Allow automatic browser updates
+ </message>
+--- a/components/helium_onboarding/src/lib/browser/prefs.ts
++++ b/components/helium_onboarding/src/lib/browser/prefs.ts
+@@ -11,6 +11,8 @@
+     'services.spellcheck_files': boolean,
+     'services.browser_updates': boolean,
+     'services.ublock_assets': boolean,
++    'services.sync': boolean,
++    'services.sendtab': boolean,
+ };
+ 
+ export type PrefKey = keyof Preferences;
+--- a/components/helium_onboarding/src/lib/strings.ts
++++ b/components/helium_onboarding/src/lib/strings.ts
+@@ -29,6 +29,10 @@
+  | "servicesExtensionsDesc"
+  | "servicesUblockTitle"
+  | "servicesUblockDesc"
++ | "servicesSyncTitle"
++ | "servicesSyncDesc"
++ | "servicesSendtabTitle"
++ | "servicesSendtabDesc"
+  | "servicesAutoupdatesTitle"
+  | "servicesAutoupdatesDesc"
+  | "servicesAutoupdatesTitleLinux"
+@@ -156,6 +156,10 @@
+     "servicesExtensionsDesc": "When enabled, Helium will proxy extension downloads and updates to protect your privacy. When disabled, downloading and updating extensions will not work.",
+     "servicesUblockTitle": "Allow downloading filter lists for uBlock Origin",
+     "servicesUblockDesc": "Helium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Helium. Optional filter lists will be requested without proxying.",
++    "servicesSyncTitle": "Sync extensions and bookmarks across your devices",
++    "servicesSyncDesc": "Helium will sync your extension list and bookmarks across devices that share the same sync token, through your own services instance. Bookmarks are only ever added, never deleted automatically. Set your sync token in Helium settings.",
++    "servicesSendtabTitle": "Send tabs between your devices",
++    "servicesSendtabDesc": "Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it.",
+     "servicesAutoupdatesTitle": "Allow automatic browser updates",
+     "servicesAutoupdatesDesc": "Helium will automatically check for updates and install them. This includes browser and component updates. We recommend keeping this setting enabled to ensure you get the latest features and security updates.",
+     "servicesAutoupdatesTitleLinux": "Allow automatic component updates",
+@@ -258,6 +258,10 @@
+         get extensionsDesc() { return getString('servicesExtensionsDesc'); },
+         get ublockTitle() { return getString('servicesUblockTitle'); },
+         get ublockDesc() { return getString('servicesUblockDesc'); },
++        get syncTitle() { return getString('servicesSyncTitle'); },
++        get syncDesc() { return getString('servicesSyncDesc'); },
++        get sendtabTitle() { return getString('servicesSendtabTitle'); },
++        get sendtabDesc() { return getString('servicesSendtabDesc'); },
+         get autoupdatesTitle() { return getString('servicesAutoupdatesTitle'); },
+         get autoupdatesDesc() { return getString('servicesAutoupdatesDesc'); },
+         get autoupdatesTitleLinux() { return getString('servicesAutoupdatesTitleLinux'); },
+--- a/components/helium_onboarding/src/pages/HeliumServices.svelte
++++ b/components/helium_onboarding/src/pages/HeliumServices.svelte
+@@ -45,6 +45,18 @@
+                 prefName={"services.ublock_assets"}
+                 inactive={!$pr["services.enabled"]}
+             />
++            <Toggle
++                title={s.services.syncTitle}
++                desc={s.services.syncDesc}
++                prefName={"services.sync"}
++                inactive={!$pr["services.enabled"]}
++            />
++            <Toggle
++                title={s.services.sendtabTitle}
++                desc={s.services.sendtabDesc}
++                prefName={"services.sendtab"}
++                inactive={!$pr["services.enabled"]}
++            />
+             {#if !platform.is.linux}
+                 <Toggle
+                     title={s.services.autoupdatesTitle}

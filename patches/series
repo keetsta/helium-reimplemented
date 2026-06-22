@@ -166,6 +166,9 @@ helium/core/ublock-helium-services.patch
 helium/core/sync-prefs-and-url.patch
 helium/core/sync-client-engine.patch
 helium/core/sync-settings-ui.patch
+helium/core/sendtab-engine.patch
+helium/core/sendtab-context-menu.patch
+helium/core/sendtab-settings.patch
 helium/core/clean-omnibox-suggestions.patch
 helium/core/increase-incognito-storage-quota.patch
 

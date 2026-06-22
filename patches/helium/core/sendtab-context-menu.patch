@@ -1,0 +1,295 @@
+--- /dev/null
++++ b/chrome/browser/ui/tabs/helium_send_tab_menu_delegate.h
+@@ -0,0 +1,53 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_TABS_HELIUM_SEND_TAB_MENU_DELEGATE_H_
++#define CHROME_BROWSER_UI_TABS_HELIUM_SEND_TAB_MENU_DELEGATE_H_
++
++#include <string>
++#include <vector>
++
++#include "base/memory/weak_ptr.h"
++#include "chrome/browser/helium_sendtab/helium_sendtab_service.h"
++#include "ui/menus/simple_menu_model.h"
++#include "url/gurl.h"
++
++namespace content {
++class WebContents;
++}
++
++namespace helium {
++
++// Delegate backing the "Send tab to my devices" submenu in the tab context
++// menu. It snapshots the device list and the target tab's url/title at
++// construction, and on selection forwards the tab to the chosen device via
++// HeliumSendTabService.
++class HeliumSendTabMenuDelegate : public ui::SimpleMenuModel::Delegate {
++ public:
++  explicit HeliumSendTabMenuDelegate(content::WebContents* web_contents);
++  HeliumSendTabMenuDelegate(const HeliumSendTabMenuDelegate&) = delete;
++  HeliumSendTabMenuDelegate& operator=(const HeliumSendTabMenuDelegate&) =
++      delete;
++  ~HeliumSendTabMenuDelegate() override;
++
++  // Adds one item per known device to `model`. Returns the number added.
++  size_t PopulateSubmenu(ui::SimpleMenuModel* model);
++
++  // True if at least one device is available to send to.
++  bool HasDevices() const { return !devices_.empty(); }
++
++  // ui::SimpleMenuModel::Delegate:
++  bool IsCommandIdEnabled(int command_id) const override;
++  void ExecuteCommand(int command_id, int event_flags) override;
++
++ private:
++  base::WeakPtr<content::WebContents> web_contents_;
++  GURL url_;
++  std::u16string title_;
++  std::vector<HeliumSendTabService::Device> devices_;
++};
++
++}  // namespace helium
++
++#endif  // CHROME_BROWSER_UI_TABS_HELIUM_SEND_TAB_MENU_DELEGATE_H_
+--- /dev/null
++++ b/chrome/browser/ui/tabs/helium_send_tab_menu_delegate.cc
+@@ -0,0 +1,75 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
++#include "chrome/browser/ui/tabs/helium_send_tab_menu_delegate.h"
++
++#include "base/strings/utf_string_conversions.h"
++#include "chrome/app/chrome_command_ids.h"
++#include "chrome/browser/helium_sendtab/helium_sendtab_service_factory.h"
++#include "chrome/browser/profiles/profile.h"
++#include "content/public/browser/web_contents.h"
++
++namespace helium {
++
++namespace {
++
++HeliumSendTabService* ServiceFor(content::WebContents* web_contents) {
++  if (!web_contents) {
++    return nullptr;
++  }
++  Profile* profile =
++      Profile::FromBrowserContext(web_contents->GetBrowserContext());
++  return HeliumSendTabServiceFactory::GetForProfile(profile);
++}
++
++}  // namespace
++
++HeliumSendTabMenuDelegate::HeliumSendTabMenuDelegate(
++    content::WebContents* web_contents)
++    : web_contents_(web_contents ? web_contents->GetWeakPtr() : nullptr) {
++  if (web_contents) {
++    url_ = web_contents->GetLastCommittedURL();
++    title_ = web_contents->GetTitle();
++  }
++  if (HeliumSendTabService* service = ServiceFor(web_contents)) {
++    devices_ = service->GetDevices();
++  }
++}
++
++HeliumSendTabMenuDelegate::~HeliumSendTabMenuDelegate() = default;
++
++size_t HeliumSendTabMenuDelegate::PopulateSubmenu(ui::SimpleMenuModel* model) {
++  size_t count = 0;
++  for (size_t i = 0; i < devices_.size(); ++i) {
++    int command_id = IDC_HELIUM_SEND_TAB_TO_DEVICE_FIRST + static_cast<int>(i);
++    if (command_id > IDC_HELIUM_SEND_TAB_TO_DEVICE_LAST) {
++      break;  // out of reserved ids; ignore the overflow
++    }
++    model->AddItem(command_id, base::UTF8ToUTF16(devices_[i].name));
++    ++count;
++  }
++  return count;
++}
++
++bool HeliumSendTabMenuDelegate::IsCommandIdEnabled(int command_id) const {
++  return url_.is_valid();
++}
++
++void HeliumSendTabMenuDelegate::ExecuteCommand(int command_id,
++                                               int event_flags) {
++  if (command_id < IDC_HELIUM_SEND_TAB_TO_DEVICE_FIRST ||
++      command_id > IDC_HELIUM_SEND_TAB_TO_DEVICE_LAST) {
++    return;
++  }
++  size_t index = static_cast<size_t>(command_id -
++                                     IDC_HELIUM_SEND_TAB_TO_DEVICE_FIRST);
++  if (index >= devices_.size() || !url_.is_valid()) {
++    return;
++  }
++  if (HeliumSendTabService* service = ServiceFor(web_contents_.get())) {
++    service->SendTab(devices_[index].id, url_, title_);
++  }
++}
++
++}  // namespace helium
+--- a/chrome/app/chrome_command_ids.h
++++ b/chrome/app/chrome_command_ids.h
+@@ -508,6 +508,12 @@
+ #define IDC_CONTENT_CONTEXT_SEND_TAB_TO_SELF_DEVICE_LAST \
+   IDC_CONTENT_CONTEXT_SEND_TAB_TO_SELF_DEVICE5
+ #define IDC_CONTENT_CONTEXT_SEND_TAB_TO_SELF_MANAGE_DEVICES 51045
++
++// Helium send-tab-to-device: dynamic per-device items in the tab context menu
++// submenu. Reserve a block of 20 so the device list rarely overflows it.
++#define IDC_HELIUM_SEND_TAB_TO_DEVICE_SUBMENU 51049
++#define IDC_HELIUM_SEND_TAB_TO_DEVICE_FIRST 51050
++#define IDC_HELIUM_SEND_TAB_TO_DEVICE_LAST 51069
+ 
+ // ChromeOS clipboard history
+ #define IDC_CONTENT_PASTE_FROM_CLIPBOARD 51037
+--- a/chrome/browser/ui/tabs/tab_menu_model.h
++++ b/chrome/browser/ui/tabs/tab_menu_model.h
+@@ -16,6 +16,10 @@
+ namespace send_tab_to_self {
+ class SendTabToSelfContextMenuDelegate;
+ }
++
++namespace helium {
++class HeliumSendTabMenuDelegate;
++}
+ 
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+ namespace extensions {
+@@ -75,6 +75,7 @@
+   void BuildForWebApp(int index);
+   void BuildSendTabToSelfSubmenu(int index);
+   void BuildLegacySendTabToSelfItem();
++  void BuildHeliumSendTabSubmenu(int index);
+ 
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+   // Support for appending and executing commands for extension items in the
+@@ -95,6 +95,9 @@
+   std::unique_ptr<ui::SimpleMenuModel> send_tab_to_self_submenu_;
+   std::unique_ptr<send_tab_to_self::SendTabToSelfContextMenuDelegate>
+       send_tab_to_self_submenu_delegate_;
++  std::unique_ptr<ui::SimpleMenuModel> helium_send_tab_submenu_;
++  std::unique_ptr<helium::HeliumSendTabMenuDelegate>
++      helium_send_tab_submenu_delegate_;
+ 
+   // `tab_strip_` needs to outlive this class.
+   raw_ptr<TabStripModel> tab_strip_;
+--- a/chrome/browser/ui/tabs/tab_menu_model.cc
++++ b/chrome/browser/ui/tabs/tab_menu_model.cc
+@@ -28,6 +28,8 @@
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/color/chrome_color_id.h"
+ #include "chrome/browser/ui/send_tab_to_self/send_tab_to_self_context_menu_delegate.h"
++#include "chrome/browser/ui/tabs/helium_send_tab_menu_delegate.h"
++#include "components/helium_services/helium_services_helpers.h"
+ #include "chrome/browser/ui/tabs/existing_tab_group_sub_menu_model.h"
+ #include "chrome/browser/ui/tabs/existing_window_sub_menu_model.h"
+ #include "chrome/browser/ui/tabs/features.h"
+@@ -168,6 +168,24 @@
+                   ui::ImageModel::FromVectorIcon(kDevicesIcon));
+ #endif
+ }
++
++void TabMenuModel::BuildHeliumSendTabSubmenu(int index) {
++  helium_send_tab_submenu_delegate_ =
++      std::make_unique<helium::HeliumSendTabMenuDelegate>(
++          tab_strip_->GetWebContentsAt(index));
++  if (!helium_send_tab_submenu_delegate_->HasDevices()) {
++    helium_send_tab_submenu_delegate_.reset();
++    return;  // nothing to send to; don't show the item
++  }
++  helium_send_tab_submenu_ = std::make_unique<ui::SimpleMenuModel>(
++      helium_send_tab_submenu_delegate_.get());
++  helium_send_tab_submenu_delegate_->PopulateSubmenu(
++      helium_send_tab_submenu_.get());
++  AddSubMenuWithStringId(IDC_HELIUM_SEND_TAB_TO_DEVICE_SUBMENU,
++                         IDS_TAB_CXMENU_HELIUM_SEND_TAB_TO_DEVICE,
++                         helium_send_tab_submenu_.get());
++}
++
+ void TabMenuModel::Build(int index) {
+   std::vector<int> indices;
+   if (tab_strip_->IsTabSelected(index)) {
+@@ -367,6 +367,10 @@
+       BuildLegacySendTabToSelfItem();
+     }
+   }
++
++  if (helium::ShouldSendTab(*tab_strip_->profile()->GetPrefs())) {
++    BuildHeliumSendTabSubmenu(index);
++  }
+ 
+ // Append extension items for the 'tab' context if the feature is enabled.
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+@@ -466,6 +466,11 @@
+     return matcher->IsCommandIdEnabled(GetCommandIdAt(index));
+   }
+ #endif
++  // The send-to-device submenu parent is backed by its own delegate; the outer
++  // delegate doesn't know this id, so enable it explicitly when present.
++  if (GetCommandIdAt(index) == IDC_HELIUM_SEND_TAB_TO_DEVICE_SUBMENU) {
++    return true;
++  }
+   return ui::SimpleMenuModel::IsEnabledAt(index);
+ }
+ 
+--- a/chrome/browser/ui/tabs/BUILD.gn
++++ b/chrome/browser/ui/tabs/BUILD.gn
+@@ -57,6 +57,7 @@
+   source_set("tab_menu") {
+     sources = [
+       "glic_tab_sub_menu_model.h",
++      "helium_send_tab_menu_delegate.h",
+       "tab_menu_model.h",
+       "tab_menu_model_delegate.h",
+       "tab_menu_model_factory.h",
+@@ -94,6 +94,7 @@
+ 
+     sources = [
+       "glic_tab_sub_menu_model.cc",
++      "helium_send_tab_menu_delegate.cc",
+       "tab_menu_model.cc",
+       "tab_menu_model_factory.cc",
+     ]
+@@ -109,6 +109,7 @@
+       "//chrome/browser/extensions",
+       "//chrome/browser/glic",
+       "//chrome/browser/glic/browser_ui",
++      "//chrome/browser/helium_sendtab",
+       "//chrome/browser/profiles:profile",
+       "//chrome/browser/send_tab_to_self",
+       "//chrome/browser/ui:ui_features",
+@@ -120,6 +120,7 @@
+       "//components/commerce/core:commerce_constants",
+       "//components/commerce/core:feature_list",
+       "//components/feed:feature_list",
++      "//components/helium_services",
+     ]
+ 
+     # TODO(crbug.com/40031409): Fix code that adds exit-time destructors and
+--- a/chrome/app/generated_resources.grd
++++ b/chrome/app/generated_resources.grd
+@@ -11894,6 +11894,9 @@
+         <message name="IDS_TAB_CXMENU_CLOSETAB" desc="The label of the tab context menu item for closing one or more tabs.">
+           Close
+         </message>
++        <message name="IDS_TAB_CXMENU_HELIUM_SEND_TAB_TO_DEVICE" desc="The label of the tab context menu submenu for sending the tab to another of the user's devices.">
++          Send tab to my devices
++        </message>
+         <message name="IDS_TAB_CXMENU_CLOSEOTHERTABS" desc="The label of the 'Close Other Tabs' Tab context menu item.">
+           Close other tabs
+         </message>
+@@ -12028,6 +12028,9 @@
+         <message name="IDS_TAB_CXMENU_CLOSETAB" desc="In Title Case: The label of the tab context menu item for closing one or more tabs.">
+           Close
+         </message>
++        <message name="IDS_TAB_CXMENU_HELIUM_SEND_TAB_TO_DEVICE" desc="In Title Case: The label of the tab context menu submenu for sending the tab to another of the user's devices.">
++          Send Tab to My Devices
++        </message>
+         <message name="IDS_TAB_CXMENU_CLOSEOTHERTABS" desc="In Title Case: The label of the 'Close Other Tabs' Tab context menu item.">
+           Close Other Tabs
+         </message>
