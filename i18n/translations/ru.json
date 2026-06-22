@@ -220,6 +220,11 @@
   "message": "Усыпить"
  },
  {
+  "name": "IDS_TAB_CXMENU_HELIUM_SEND_TAB_TO_DEVICE",
+  "source": "Send tab to my devices",
+  "message": "Отправить вкладку на мои устройства"
+ },
+ {
   "name": "IDS_SETTINGS_PERMISSIONS_DESCRIPTION_NORMAL",
   "source": "Manage site permissions and content settings (cookies, pop-ups, and more)",
   "message": "Управление разрешениями сайтов и настройками содержимого (cookie, всплывающие окна и др.)"
@@ -820,6 +825,16 @@
   "message": "Синхронизировать сейчас"
  },
  {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_RESET",
+  "source": "Reset server data",
+  "message": "Сбросить данные на сервере"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_RESET_CONFIRM",
+  "source": "This replaces the synced data on the server with what is currently on this device. Items that exist only on the server (including ones removed locally) will be discarded. Continue?",
+  "message": "Это заменит синхронизированные данные на сервере тем, что сейчас на этом устройстве. Элементы, которые есть только на сервере (включая удалённые локально), будут отброшены. Продолжить?"
+ },
+ {
   "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SYNCING",
   "source": "Syncing…",
   "message": "Синхронизация…"
@@ -865,8 +880,78 @@
   "message": "$1 дн назад"
  },
  {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_TITLE",
+  "source": "Deleted on another device",
+  "message": "Удалено на другом устройстве"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_DESCRIPTION",
+  "source": "Bookmarks removed on another device land here. Restore them or delete them for good.",
+  "message": "Закладки, удалённые на другом устройстве, попадают сюда. Восстановите их или удалите навсегда."
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_RESTORE",
+  "source": "Restore",
+  "message": "Восстановить"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_DELETE_FOREVER",
+  "source": "Delete forever",
+  "message": "Удалить навсегда"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY",
+  "source": "Empty trash",
+  "message": "Очистить корзину"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM",
+  "source": "Permanently delete all bookmarks in the trash? This cannot be undone.",
+  "message": "Удалить все закладки из корзины навсегда? Это действие необратимо."
+ },
+ {
   "name": "IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK",
   "source": "View the Helium Reimplemented services source code",
   "message": "Посмотреть исходный код Helium Reimplemented services"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB",
+  "source": "Send tabs to your devices",
+  "message": "Отправка вкладок на ваши устройства"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DESCRIPTION",
+  "source": "Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it.",
+  "message": "Отправляйте открытую вкладку на другое своё устройство с тем же токеном синхронизации. Нажмите на вкладку правой кнопкой и выберите устройство."
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME",
+  "source": "Device name",
+  "message": "Имя устройства"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME_DESCRIPTION",
+  "source": "The name other devices see when choosing where to send a tab.",
+  "message": "Имя, которое видят другие устройства при выборе, куда отправить вкладку."
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE",
+  "source": "When a tab arrives",
+  "message": "Когда приходит вкладка"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE_DESCRIPTION",
+  "source": "Choose whether an incoming tab shows a notification you click to open, or opens automatically.",
+  "message": "Выберите, показывать ли уведомление, по нажатию на которое вкладка откроется, или открывать её сразу."
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY",
+  "source": "Show a notification",
+  "message": "Показать уведомление"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_OPEN",
+  "source": "Open automatically",
+  "message": "Открывать автоматически"
  }
 ]

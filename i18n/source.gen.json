@@ -360,6 +360,18 @@
     "message": "Sync now"
   },
   {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_RESET",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that overwrites the server with local data, purging accumulated items",
+    "message": "Reset server data"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_RESET_CONFIRM",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Confirmation prompt before resetting server sync data",
+    "message": "This replaces the synced data on the server with what is currently on this device. Items that exist only on the server (including ones removed locally) will be discarded. Continue?"
+  },
+  {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SYNCING",
     "source": "chrome/app/settings_strings.grdp",
     "context": "Sync status: a sync is in progress",
@@ -414,10 +426,94 @@
     "message": "$1 d ago"
   },
   {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_TITLE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Heading for the list of bookmarks deleted on another synced device",
+    "message": "Deleted on another device"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Explains the bookmark trash bin",
+    "message": "Bookmarks removed on another device land here. Restore them or delete them for good."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_RESTORE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that restores a trashed bookmark",
+    "message": "Restore"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_DELETE_FOREVER",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that permanently discards a trashed bookmark",
+    "message": "Delete forever"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that empties the bookmark trash bin",
+    "message": "Empty trash"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Confirmation prompt before permanently emptying the bookmark trash bin",
+    "message": "Permanently delete all bookmarks in the trash? This cannot be undone."
+  },
+  {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK",
     "source": "chrome/app/settings_strings.grdp",
     "context": "Link to the source code of the Helium services server",
     "message": "View the Helium Reimplemented services source code"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toggle for enabling send-tab-to-device",
+    "message": "Send tabs to your devices"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the send-tab-to-device toggle",
+    "message": "Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the device name input",
+    "message": "Device name"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the device name input",
+    "message": "The name other devices see when choosing where to send a tab."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the dropdown choosing how received tabs are handled",
+    "message": "When a tab arrives"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the received-tab handling dropdown",
+    "message": "Choose whether an incoming tab shows a notification you click to open, or opens automatically."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Dropdown option: show a notification for an incoming tab",
+    "message": "Show a notification"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_OPEN",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Dropdown option: open an incoming tab automatically",
+    "message": "Open automatically"
   },
   {
     "name": "IDS_SETTINGS_NEW_TAB_NEXT_TO_ACTIVE_BUTTON",
@@ -442,6 +538,12 @@
     "source": "chrome/app/generated_resources.grd",
     "context": "The label of the 'Hibernate' Tab context menu item.",
     "message": "Hibernate"
+  },
+  {
+    "name": "IDS_TAB_CXMENU_HELIUM_SEND_TAB_TO_DEVICE",
+    "source": "chrome/app/generated_resources.grd",
+    "context": "The label of the tab context menu submenu for sending the tab to another of the user's devices.",
+    "message": "Send tab to my devices"
   },
   {
     "name": "IDS_TAB_CXMENU_HIBERNATE_OTHER_TABS",
@@ -1259,6 +1361,30 @@
     "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
     "context": "Description of the toggle for downloading uBlock Origin filter lists.",
     "message": "Helium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Helium. Optional filter lists will be requested without proxying."
+  },
+  {
+    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SYNC_TITLE",
+    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
+    "context": "Title of the toggle for cross-device sync of extensions and bookmarks.",
+    "message": "Sync extensions and bookmarks across your devices"
+  },
+  {
+    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SYNC_DESC",
+    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
+    "context": "Description of the cross-device sync toggle.",
+    "message": "Helium will sync your extension list and bookmarks across devices that share the same sync token, through your own services instance. Bookmarks are only ever added, never deleted automatically. Set your sync token in Helium settings."
+  },
+  {
+    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SENDTAB_TITLE",
+    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
+    "context": "Title of the toggle for sending tabs between the user's own devices.",
+    "message": "Send tabs between your devices"
+  },
+  {
+    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SENDTAB_DESC",
+    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
+    "context": "Description of the send-tab-to-device toggle.",
+    "message": "Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it."
   },
   {
     "name": "IDS_HELIUM_ONBOARDING_SERVICES_AUTOUPDATES_TITLE",
