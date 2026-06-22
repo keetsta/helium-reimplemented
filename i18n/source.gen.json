@@ -3,19 +3,19 @@
     "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
     "source": "chrome/app/settings_chromium_strings.grdp",
     "context": "Description for the memory saver mode setting",
-    "message": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them."
+    "message": "Helium Reimplemented frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium Reimplemented fast. Your inactive tabs automatically become active again when you go back to them."
   },
   {
     "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
     "source": "chrome/app/settings_chromium_strings.grdp",
     "context": "Description for the energy saver mode setting",
-    "message": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates."
+    "message": "Helium Reimplemented conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates."
   },
   {
     "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
     "source": "chrome/app/settings_chromium_strings.grdp",
     "context": "Summary for the preload pages setting",
-    "message": "Helium preloads pages which makes browsing and searching faster."
+    "message": "Helium Reimplemented preloads pages which makes browsing and searching faster."
   },
   {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
@@ -63,7 +63,7 @@
     "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
     "source": "chrome/app/generated_resources.grd",
     "context": "Name for bookmark panel folder imported from another browser",
-    "message": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>"
+    "message": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium Reimplemented</ex></ph>"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -292,6 +292,132 @@
     "source": "chrome/app/settings_strings.grdp",
     "context": "Description of the toggle for automatic update downloads",
     "message": "Helium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Helium. Optional filter lists will be requested without proxying."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toggle for enabling cross-device sync",
+    "message": "Sync extensions and bookmarks across your devices"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the cross-device sync toggle",
+    "message": "Helium will sync your extension list and bookmarks across devices that share the same sync token. Bookmarks are only ever added, never deleted. Extensions are listed for you to install, never installed automatically."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_EXTENSIONS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toggle for syncing the extension list",
+    "message": "Sync extensions"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_BOOKMARKS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toggle for syncing bookmarks",
+    "message": "Sync bookmarks"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the sync token input",
+    "message": "Sync token"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the sync token input",
+    "message": "Enter the same secret token on each device you want to sync. Anyone with this token can read and write your synced data, so keep it private and use at least 32 characters."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_GENERATE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the button that generates a random sync token",
+    "message": "Generate"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_SHOW",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Tooltip for the button that shows or hides the sync token",
+    "message": "Show or hide token"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPY",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Tooltip for the button that copies the sync token to the clipboard",
+    "message": "Copy token"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPIED",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toast shown after the sync token is copied to the clipboard",
+    "message": "Token copied to clipboard"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_NOW",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that triggers an immediate sync",
+    "message": "Sync now"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SYNCING",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: a sync is in progress",
+    "message": "Syncing…"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_ERROR",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: the last sync failed",
+    "message": "Last sync failed. Check the server address and token."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_CONFLICT",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: a version conflict will be retried",
+    "message": "A newer version was found on the server. It will be merged on the next sync."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SUCCESS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: last successful sync time. $1 is a relative time like '5 minutes ago'.",
+    "message": "Last synced $1"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_NEVER",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: never synced yet",
+    "message": "Not synced yet"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_JUST_NOW",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Relative time: less than a minute ago",
+    "message": "just now"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_MINUTES",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Relative time in minutes. $1 is a number.",
+    "message": "$1 min ago"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_HOURS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Relative time in hours. $1 is a number.",
+    "message": "$1 h ago"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_DAYS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Relative time in days. $1 is a number.",
+    "message": "$1 d ago"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Link to the source code of the Helium services server",
+    "message": "View the Helium Reimplemented services source code"
   },
   {
     "name": "IDS_SETTINGS_NEW_TAB_NEXT_TO_ACTIVE_BUTTON",
@@ -771,7 +897,7 @@
   {
     "name": "IDS_NTP_CUSTOMIZE_CHROME_CHANGE_WALLPAPER_LABEL",
     "source": "chrome/app/generated_resources.grd",
-    "context": "The label for the action button for changing Helium wallpaper in the New Tab Page customize chrome side panel.",
+    "context": "The label for the action button for changing Helium Reimplemented wallpaper in the New Tab Page customize chrome side panel.",
     "message": "Change wallpaper"
   },
   {

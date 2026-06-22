@@ -17,7 +17,7 @@
    (*s_allowlist)[::prefs::kHeliumServicesConsented] =
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -1835,6 +1835,24 @@
+@@ -1835,6 +1835,69 @@
      <message name="IDS_SETTINGS_HELIUM_SERVICES_UBO_DESCRIPTION" desc="Description of the toggle for automatic update downloads">
        Helium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Helium. Optional filter lists will be requested without proxying.
      </message>
@@ -39,12 +39,57 @@
 +    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_DESCRIPTION" desc="Description of the sync token input">
 +      Enter the same secret token on each device you want to sync. Anyone with this token can read and write your synced data, so keep it private and use at least 32 characters.
 +    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_GENERATE" desc="Label for the button that generates a random sync token">
++      Generate
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_SHOW" desc="Tooltip for the button that shows or hides the sync token">
++      Show or hide token
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPY" desc="Tooltip for the button that copies the sync token to the clipboard">
++      Copy token
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPIED" desc="Toast shown after the sync token is copied to the clipboard">
++      Token copied to clipboard
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_NOW" desc="Button that triggers an immediate sync">
++      Sync now
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SYNCING" desc="Sync status: a sync is in progress">
++      Syncing…
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_ERROR" desc="Sync status: the last sync failed">
++      Last sync failed. Check the server address and token.
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_CONFLICT" desc="Sync status: a version conflict will be retried">
++      A newer version was found on the server. It will be merged on the next sync.
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SUCCESS" desc="Sync status: last successful sync time. $1 is a relative time like '5 minutes ago'.">
++      Last synced <ph name="WHEN">$1<ex>5 minutes ago</ex></ph>
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_NEVER" desc="Sync status: never synced yet">
++      Not synced yet
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_JUST_NOW" desc="Relative time: less than a minute ago">
++      just now
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_MINUTES" desc="Relative time in minutes. $1 is a number.">
++      <ph name="COUNT">$1<ex>5</ex></ph> min ago
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_HOURS" desc="Relative time in hours. $1 is a number.">
++      <ph name="COUNT">$1<ex>2</ex></ph> h ago
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_DAYS" desc="Relative time in days. $1 is a number.">
++      <ph name="COUNT">$1<ex>3</ex></ph> d ago
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK" desc="Link to the source code of the Helium services server">
++      View the Helium Reimplemented services source code
++    </message>
      <message name="IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE" desc="Text input for overriding the Helium services server">
        Use your own instance of Helium services
      </message>
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2284,6 +2284,16 @@
+@@ -2284,6 +2284,44 @@
          IDS_SETTINGS_HELIUM_SERVICES_UBO},
        {"heliumUboToggleDescription",
          IDS_SETTINGS_HELIUM_SERVICES_UBO_DESCRIPTION},
@@ -58,12 +103,40 @@
 +      {"heliumSyncToken", IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN},
 +      {"heliumSyncTokenDescription",
 +        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_DESCRIPTION},
++      {"heliumSyncTokenGenerate",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_GENERATE},
++      {"heliumSyncTokenShow",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_SHOW},
++      {"heliumSyncTokenCopy",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPY},
++      {"heliumSyncTokenCopied",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPIED},
++      {"heliumSyncNow", IDS_SETTINGS_HELIUM_SERVICES_SYNC_NOW},
++      {"heliumSyncStatusSyncing",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SYNCING},
++      {"heliumSyncStatusError",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_ERROR},
++      {"heliumSyncStatusConflict",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_CONFLICT},
++      {"heliumSyncStatusSuccess",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SUCCESS},
++      {"heliumSyncStatusNever",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_NEVER},
++      {"heliumSyncTimeJustNow",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_JUST_NOW},
++      {"heliumSyncTimeMinutes",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_MINUTES},
++      {"heliumSyncTimeHours",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_HOURS},
++      {"heliumSyncTimeDays",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_DAYS},
++      {"heliumServicesRepoLink", IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK},
        {"heliumOriginOverride", IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE},
        {"heliumOriginOverrideDescription",
          IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION},
 --- a/chrome/browser/resources/settings/privacy_page/services_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/services_page.html
-@@ -109,6 +109,44 @@
+@@ -109,6 +109,73 @@
                  label="$i18n{heliumUboToggle}"
                  sub-label="$i18n{heliumUboToggleDescription}">
              </settings-toggle-button>
@@ -95,14 +168,43 @@
 +                            id="heliumSyncToken"
 +                            value="[[prefs.helium.services.sync_token.value]]"
 +                            on-change="onSyncTokenChange_"
-+                            type="password"
++                            type$="[[syncTokenInputType_(syncTokenVisible_)]]"
 +                            minlength="32"
 +                            maxlength="512"
 +                            aria-label="$i18n{heliumSyncToken}"
 +                            spellcheck="false">
++                            <cr-icon-button slot="suffix"
++                                id="toggleSyncTokenVisibility"
++                                class$="[[syncTokenVisibilityClass_(syncTokenVisible_)]]"
++                                on-click="onToggleSyncTokenVisibilityClick_"
++                                title="$i18n{heliumSyncTokenShow}">
++                            </cr-icon-button>
++                            <cr-icon-button slot="suffix"
++                                id="copySyncToken"
++                                class="icon-copy-content"
++                                on-click="onCopySyncTokenClick_"
++                                title="$i18n{heliumSyncTokenCopy}">
++                            </cr-icon-button>
 +                        </cr-input>
++                        <cr-button id="generateSyncTokenButton"
++                            on-click="onGenerateSyncTokenClick_">
++                            $i18n{heliumSyncTokenGenerate}
++                        </cr-button>
 +                      </div>
 +                    </div>
++                    <div class="cr-row">
++                      <div class="flex">
++                        <div class="cr-secondary-text"
++                            id="syncStatusText">[[syncStatusText_]]</div>
++                      </div>
++                      <cr-button id="syncNowButton"
++                          on-click="onSyncNowClick_">
++                          $i18n{heliumSyncNow}
++                      </cr-button>
++                    </div>
++                    <cr-toast id="syncTokenCopiedToast" duration="3000">
++                        <div>$i18n{heliumSyncTokenCopied}</div>
++                    </cr-toast>
 +                </cr-collapse>
 +            </div>
          </cr-collapse>
@@ -110,10 +212,132 @@
      </template>
 --- a/chrome/browser/resources/settings/privacy_page/services_page.ts
 +++ b/chrome/browser/resources/settings/privacy_page/services_page.ts
-@@ -98,6 +98,14 @@
-   private onServicesPendingButtonClick_() {
-     window.open('chrome://setup', '_blank');
+@@ -8,18 +8,28 @@
+ import 'chrome://resources/cr_elements/cr_checkbox/cr_checkbox.js';
+ import 'chrome://resources/cr_elements/cr_collapse/cr_collapse.js';
+ import 'chrome://resources/cr_elements/cr_icon/cr_icon.js';
++import 'chrome://resources/cr_elements/cr_icon_button/cr_icon_button.js';
+ import 'chrome://resources/cr_elements/cr_input/cr_input.js';
++import 'chrome://resources/cr_elements/cr_toast/cr_toast.js';
+ 
+ import {PrefsMixin} from '/shared/settings/prefs/prefs_mixin.js';
+ import {HelpBubbleMixin} from 'chrome://resources/cr_components/help_bubble/help_bubble_mixin.js';
+ import type {CrInputElement} from 'chrome://resources/cr_elements/cr_input/cr_input.js';
++import type {CrToastElement} from 'chrome://resources/cr_elements/cr_toast/cr_toast.js';
+ import {I18nMixin} from 'chrome://resources/cr_elements/i18n_mixin.js';
+ import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++import {sendWithPromise, addWebUiListener} from 'chrome://resources/js/cr.js';
+ 
+ import type {HeliumServicesChangeHandler} from './changelog_proxy.js';
+ import {HeliumServicesChangeHandlerImpl} from './changelog_proxy.js';
+ import {getTemplate} from './services_page.html.js';
+ 
++interface HeliumSyncStatus {
++  status: string;
++  lastTime: number;
++  missing: string[];
++}
++
+ const SettingsHeliumServicesPageElementBase =
+     HelpBubbleMixin(I18nMixin(PrefsMixin(PolymerElement)));
+ 
+@@ -40,11 +50,76 @@
+     return {
+       ignoreChecked_: Boolean,
+       changes_: Array,
++      syncTokenVisible_: {
++        type: Boolean,
++        value: false,
++      },
++      syncStatusText_: {
++        type: String,
++        value: '',
++      },
+     };
    }
+ 
+   declare private changes_: string[];
+   declare private ignoreChecked_: boolean;
++  declare private syncTokenVisible_: boolean;
++  declare private syncStatusText_: string;
++
++  override ready() {
++    super.ready();
++    this.requestChangelog();
++    addWebUiListener(
++        'helium-sync-status-changed', () => this.refreshSyncStatus_());
++    this.refreshSyncStatus_();
++  }
++
++  private refreshSyncStatus_() {
++    sendWithPromise<HeliumSyncStatus>('getHeliumSyncStatus').then((s) => {
++      this.syncStatusText_ = this.formatSyncStatus_(s);
++    });
++  }
++
++  private formatSyncStatus_(s: HeliumSyncStatus): string {
++    if (s.status === 'syncing') {
++      return this.i18n('heliumSyncStatusSyncing');
++    }
++    if (s.status === 'error') {
++      return this.i18n('heliumSyncStatusError');
++    }
++    if (s.status === 'conflict') {
++      return this.i18n('heliumSyncStatusConflict');
++    }
++    if (s.status === 'success' && s.lastTime > 0) {
++      return this.i18n(
++          'heliumSyncStatusSuccess', this.formatRelativeTime_(s.lastTime));
++    }
++    return this.i18n('heliumSyncStatusNever');
++  }
++
++  private formatRelativeTime_(unixSeconds: number): string {
++    const deltaSec = Math.max(0, Date.now() / 1000 - unixSeconds);
++    if (deltaSec < 60) {
++      return this.i18n('heliumSyncTimeJustNow');
++    }
++    if (deltaSec < 3600) {
++      return this.i18n(
++          'heliumSyncTimeMinutes', Math.floor(deltaSec / 60).toString());
++    }
++    if (deltaSec < 86400) {
++      return this.i18n(
++          'heliumSyncTimeHours', Math.floor(deltaSec / 3600).toString());
++    }
++    return this.i18n(
++        'heliumSyncTimeDays', Math.floor(deltaSec / 86400).toString());
++  }
++
++  private onSyncNowClick_() {
++    chrome.send('heliumSyncNow');
++    this.syncStatusText_ = this.i18n('heliumSyncStatusSyncing');
++    // Poll once shortly after to reflect the result.
++    setTimeout(() => this.refreshSyncStatus_(), 1500);
++  }
+ 
+   private toOrigin(thing: string) {
+     try {
+@@ -68,11 +143,6 @@
+     this.requestChangelog();
+   }
+ 
+-  override ready() {
+-    super.ready();
+-    this.requestChangelog();
+-  }
+-
+   protected onOriginOverrideKeydown_(event: KeyboardEvent) {
+     const target = event.target as CrInputElement;
+ 
+@@ -94,6 +164,55 @@
+ 
+     this.setPrefValue('helium.services.origin_override', target.value);
+   }
++
++  private onServicesPendingButtonClick_() {
++    window.open('chrome://setup', '_blank');
++  }
 +
 +  private onSyncTokenChange_(event: Event) {
 +    const target = event.target as CrInputElement;
@@ -121,6 +345,43 @@
 +      return;
 +    }
 +    this.setPrefValue('helium.services.sync_token', target.value);
++  }
++
++  private onGenerateSyncTokenClick_() {
++    const bytes = new Uint8Array(32);
++    crypto.getRandomValues(bytes);
++    const token = Array.from(
++        bytes, (b) => b.toString(16).padStart(2, '0')).join('');
++    const input = this.shadowRoot!.querySelector<CrInputElement>(
++        '#heliumSyncToken');
++    if (input) {
++      input.value = token;
++    }
++    this.setPrefValue('helium.services.sync_token', token);
++  }
++
++  private syncTokenInputType_(): string {
++    return this.syncTokenVisible_ ? 'text' : 'password';
++  }
++
++  private syncTokenVisibilityClass_(): string {
++    return 'icon-visibility' + (this.syncTokenVisible_ ? '-off' : '');
++  }
++
++  private onToggleSyncTokenVisibilityClick_() {
++    this.syncTokenVisible_ = !this.syncTokenVisible_;
++  }
++
++  private onCopySyncTokenClick_() {
++    const token = this.getPref<string>('helium.services.sync_token').value;
++    if (token) {
++      navigator.clipboard.writeText(token);
++      const toast = this.shadowRoot!.querySelector<CrToastElement>(
++          '#syncTokenCopiedToast');
++      if (toast) {
++        toast.show();
++      }
++    }
 +  }
  }
  

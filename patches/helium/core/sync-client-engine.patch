@@ -81,25 +81,25 @@
 +  Status last_status() const { return last_status_; }
 +
 + private:
-+  // One collection's GETв†’mergeв†’PUT round-trip.
++  // One collection's GET→merge→PUT round-trip.
 +  void SyncCollection(const std::string& collection);
 +  void OnCollectionFetched(const std::string& collection,
 +                           std::unique_ptr<network::SimpleURLLoader> loader,
 +                           std::optional<std::string> response_body);
 +  void PushCollection(const std::string& collection,
 +                      int base_version,
-+                      base::Value::Dict payload);
++                      base::DictValue payload);
 +  void OnCollectionPushed(const std::string& collection,
 +                          std::unique_ptr<network::SimpleURLLoader> loader,
 +                          std::optional<std::string> response_body);
 +
 +  // Collection (de)serialization. These read/write the live BookmarkModel and
 +  // ExtensionRegistry. `remote` is the server's `data` field (may be null).
-+  base::Value::List SerializeExtensions() const;
-+  void ApplyRemoteExtensions(const base::Value::List& remote);
++  base::ListValue SerializeExtensions() const;
++  void ApplyRemoteExtensions(const base::ListValue& remote);
 +
-+  base::Value::List SerializeBookmarks() const;
-+  void ApplyRemoteBookmarks(const base::Value::List& remote);
++  base::ListValue SerializeBookmarks() const;
++  void ApplyRemoteBookmarks(const base::ListValue& remote);
 +
 +  void SetStatus(Status status);
 +  void OnSyncPrefChanged();
@@ -126,7 +126,7 @@
 +#endif  // COMPONENTS_HELIUM_SYNC_HELIUM_SYNC_SERVICE_H_
 --- /dev/null
 +++ b/components/helium_sync/helium_sync_service.cc
-@@ -0,0 +1,456 @@
+@@ -0,0 +1,471 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -206,6 +206,20 @@
 +  pref_change_registrar_.Init(prefs_);
 +  helium::ConfigurePrefChangeRegistrarFor(
 +      prefs::kHeliumSyncEnabled, pref_change_registrar_,
++      base::BindRepeating(&HeliumSyncService::OnSyncPrefChanged,
++                          weak_factory_.GetWeakPtr()));
++  // The shared helper only registers kHeliumSyncEnabled; also resync when the
++  // token or per-collection toggles change (e.g. pasting the token last).
++  pref_change_registrar_.Add(
++      prefs::kHeliumSyncToken,
++      base::BindRepeating(&HeliumSyncService::OnSyncPrefChanged,
++                          weak_factory_.GetWeakPtr()));
++  pref_change_registrar_.Add(
++      prefs::kHeliumSyncExtensionsEnabled,
++      base::BindRepeating(&HeliumSyncService::OnSyncPrefChanged,
++                          weak_factory_.GetWeakPtr()));
++  pref_change_registrar_.Add(
++      prefs::kHeliumSyncBookmarksEnabled,
 +      base::BindRepeating(&HeliumSyncService::OnSyncPrefChanged,
 +                          weak_factory_.GetWeakPtr()));
 +}
@@ -334,7 +348,7 @@
 +  }
 +
 +  // Build the merged local view to push back up.
-+  base::Value::Dict payload;
++  base::DictValue payload;
 +  if (collection == kExtensionsCollection) {
 +    payload.Set("data", SerializeExtensions());
 +  } else {
@@ -347,7 +361,7 @@
 +
 +void HeliumSyncService::PushCollection(const std::string& collection,
 +                                       int base_version,
-+                                       base::Value::Dict payload) {
++                                       base::DictValue payload) {
 +  GURL url = helium::GetSyncCollectionURL(*prefs_, collection);
 +  if (!url.is_valid()) {
 +    SetStatus(Status::kError);
@@ -411,8 +425,8 @@
 +  SetStatus(response_code == 409 ? Status::kConflictRetrying : Status::kError);
 +}
 +
-+base::Value::List HeliumSyncService::SerializeExtensions() const {
-+  base::Value::List list;
++base::ListValue HeliumSyncService::SerializeExtensions() const {
++  base::ListValue list;
 +  if (!extension_registry_) {
 +    return list;
 +  }
@@ -422,7 +436,7 @@
 +  return list;
 +}
 +
-+void HeliumSyncService::ApplyRemoteExtensions(const base::Value::List& remote) {
++void HeliumSyncService::ApplyRemoteExtensions(const base::ListValue& remote) {
 +  missing_extensions_.clear();
 +  if (!extension_registry_) {
 +    return;
@@ -445,8 +459,8 @@
 +  }
 +}
 +
-+base::Value::List HeliumSyncService::SerializeBookmarks() const {
-+  base::Value::List list;
++base::ListValue HeliumSyncService::SerializeBookmarks() const {
++  base::ListValue list;
 +  if (!bookmark_model_ || !bookmark_model_->loaded()) {
 +    return list;
 +  }
@@ -457,14 +471,14 @@
 +  struct Frame {
 +    const bookmarks::BookmarkNode* node;
 +    std::string root;
-+    base::Value::List path;
++    base::ListValue path;
 +  };
 +
 +  std::vector<Frame> stack;
 +  auto push_root = [&](const bookmarks::BookmarkNode* node,
 +                       const std::string& root) {
 +    if (node) {
-+      stack.push_back({node, root, base::Value::List()});
++      stack.push_back({node, root, base::ListValue()});
 +    }
 +  };
 +  push_root(bookmark_model_->bookmark_bar_node(), kRootBar);
@@ -477,11 +491,11 @@
 +
 +    for (const auto& child : frame.node->children()) {
 +      if (child->is_folder()) {
-+        base::Value::List child_path = frame.path.Clone();
++        base::ListValue child_path = frame.path.Clone();
 +        child_path.Append(base::UTF16ToUTF8(child->GetTitle()));
 +        stack.push_back({child.get(), frame.root, std::move(child_path)});
 +      } else if (child->is_url()) {
-+        base::Value::Dict entry;
++        base::DictValue entry;
 +        entry.Set("root", frame.root);
 +        entry.Set("path", frame.path.Clone());
 +        entry.Set("title", base::UTF16ToUTF8(child->GetTitle()));
@@ -493,7 +507,7 @@
 +  return list;
 +}
 +
-+void HeliumSyncService::ApplyRemoteBookmarks(const base::Value::List& remote) {
++void HeliumSyncService::ApplyRemoteBookmarks(const base::ListValue& remote) {
 +  if (!bookmark_model_ || !bookmark_model_->loaded()) {
 +    return;
 +  }
@@ -511,7 +525,7 @@
 +  // Walks/creates the folder path under `root`, returning the target folder.
 +  auto resolve_folder =
 +      [&](const bookmarks::BookmarkNode* root,
-+          const base::Value::List& path) -> const bookmarks::BookmarkNode* {
++          const base::ListValue& path) -> const bookmarks::BookmarkNode* {
 +    const bookmarks::BookmarkNode* current = root;
 +    for (const base::Value& segment : path) {
 +      if (!segment.is_string()) {
@@ -538,11 +552,11 @@
 +    if (!value.is_dict()) {
 +      continue;
 +    }
-+    const base::Value::Dict& dict = value.GetDict();
++    const base::DictValue& dict = value.GetDict();
 +    const std::string* url_str = dict.FindString("url");
 +    const std::string* title = dict.FindString("title");
 +    const std::string* root_name = dict.FindString("root");
-+    const base::Value::List* path = dict.FindList("path");
++    const base::ListValue* path = dict.FindList("path");
 +    if (!url_str) {
 +      continue;
 +    }
@@ -551,9 +565,10 @@
 +      continue;
 +    }
 +
++    const base::ListValue empty_path;
 +    const bookmarks::BookmarkNode* target = resolve_folder(
 +        root_for(root_name ? *root_name : kRootOther),
-+        path ? *path : base::Value::List());
++        path ? *path : empty_path);
 +
 +    // Dedupe within the target folder only, so the same url can legitimately
 +    // exist in different folders.

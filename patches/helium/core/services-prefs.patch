@@ -181,7 +181,7 @@
      if (is_chrome_branded) {
 --- /dev/null
 +++ b/chrome/browser/resources/settings/privacy_page/services_page.html
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,92 @@
 +<style include="cr-shared-style settings-shared">
 +    .label-wrapper {
 +        padding: var(--cr-section-vertical-padding) 0;
@@ -252,13 +252,16 @@
 +            $i18n{heliumOriginOverrideDescription}
 +            <br><br>
 +            <b>$i18n{heliumOriginOverrideDescriptionWarning}</b>
++            <br><br>
++            <a href="https://github.com/keetsta/helium-reimplemented-services"
++                target="_blank">$i18n{heliumServicesRepoLink}</a>
 +        </div>
 +    </div>
 +    <cr-input
 +        id="heliumOriginOverride"
 +        placeholder="https://services.helium.imput.net"
 +        value="[[prefs.helium.services.origin_override.value]]"
-+        pattern="https://.*"
++        pattern="(https://.*|http://(localhost|127[.]0[.]0[.]1)(:[0-9]+)?(/.*)?)"
 +        on-keydown="onOriginOverrideKeydown_"
 +        on-change="onOriginOverrideChange_"
 +        type="url"
@@ -644,7 +647,7 @@
 +let instance: HeliumServicesChangeHandler|null = null;
 --- /dev/null
 +++ b/chrome/browser/ui/webui/settings/services_schema_handler.h
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,44 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -657,6 +660,7 @@
 +
 +#include "base/memory/raw_ptr.h"
 +#include "base/values.h"
++#include "components/prefs/pref_change_registrar.h"
 +#include "content/public/browser/web_ui_message_handler.h"
 +
 +class Profile;
@@ -672,16 +676,22 @@
 +
 +  // SettingsPageUIHandler:
 +  void RegisterMessages() override;
++  void OnJavascriptAllowed() override;
++  void OnJavascriptDisallowed() override;
 +
 + private:
 +  void HandleChangelogRequest(const base::ListValue&);
 +  void HandleChangelogAcknowledgment(const base::ListValue&);
++  void HandleSyncNow(const base::ListValue&);
++  void HandleGetSyncStatus(const base::ListValue&);
++  void OnSyncStatusPrefChanged();
 +
++  raw_ptr<Profile> profile_ = nullptr;
 +  raw_ptr<PrefService> pref_service_ = nullptr;
++  PrefChangeRegistrar pref_change_registrar_;
 +};
 +
 +#endif  // CHROME_BROWSER_UI_WEBUI_SETTINGS_SERVICES_SCHEMA_HANDLER_H_
---- /dev/null
 +++ b/components/helium_services/schema.cc
 @@ -0,0 +1,40 @@
 +// Copyright 2025 The Helium Authors
@@ -770,7 +780,7 @@
        "webui/settings/settings_localized_strings_privacy_sandbox_provider.cc",
 --- /dev/null
 +++ b/chrome/browser/ui/webui/settings/services_schema_handler.cc
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,139 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -779,13 +789,37 @@
 +
 +#include "base/functional/bind.h"
 +#include "base/values.h"
++#include "chrome/browser/helium_sync/helium_sync_service_factory.h"
 +#include "chrome/browser/profiles/profile.h"
 +#include "components/helium_services/pref_names.h"
 +#include "components/helium_services/schema.h"
++#include "components/helium_sync/helium_sync_service.h"
 +#include "components/prefs/pref_service.h"
 +
++namespace {
++
++// Maps the sync service's numeric status to a stable string key. The UI turns
++// these into localized, human-readable text; the raw enum never reaches users.
++const char* SyncStatusKey(int status) {
++  switch (status) {
++    case 1:
++      return "syncing";
++    case 2:
++      return "success";
++    case 3:
++      return "error";
++    case 4:
++      return "conflict";
++    case 0:
++    default:
++      return "idle";
++  }
++}
++
++}  // namespace
++
 +HeliumServicesSchemaHandler::HeliumServicesSchemaHandler(Profile* profile)
-+    : pref_service_(profile->GetPrefs()) {}
++    : profile_(profile), pref_service_(profile->GetPrefs()) {}
 +
 +HeliumServicesSchemaHandler::~HeliumServicesSchemaHandler() = default;
 +
@@ -799,6 +833,31 @@
 +      base::BindRepeating(
 +          &HeliumServicesSchemaHandler::HandleChangelogAcknowledgment,
 +          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "heliumSyncNow",
++      base::BindRepeating(&HeliumServicesSchemaHandler::HandleSyncNow,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "getHeliumSyncStatus",
++      base::BindRepeating(&HeliumServicesSchemaHandler::HandleGetSyncStatus,
++                          base::Unretained(this)));
++}
++
++void HeliumServicesSchemaHandler::OnJavascriptAllowed() {
++  pref_change_registrar_.Init(pref_service_);
++  pref_change_registrar_.Add(
++      prefs::kHeliumSyncLastStatus,
++      base::BindRepeating(
++          &HeliumServicesSchemaHandler::OnSyncStatusPrefChanged,
++          base::Unretained(this)));
++}
++
++void HeliumServicesSchemaHandler::OnJavascriptDisallowed() {
++  pref_change_registrar_.RemoveAll();
++}
++
++void HeliumServicesSchemaHandler::OnSyncStatusPrefChanged() {
++  FireWebUIListener("helium-sync-status-changed");
 +}
 +
 +void HeliumServicesSchemaHandler::HandleChangelogRequest(
@@ -828,6 +887,38 @@
 +
 +  helium::AcceptCurrentSchema(*pref_service_);
 +  pref_service_->SetBoolean(prefs::kHeliumDisableSchemaAlerts, ignore_alerts);
++}
++
++void HeliumServicesSchemaHandler::HandleSyncNow(const base::ListValue& args) {
++  helium::HeliumSyncService* service =
++      helium::HeliumSyncServiceFactory::GetForProfile(profile_);
++  if (service) {
++    service->SyncNow();
++  }
++}
++
++void HeliumServicesSchemaHandler::HandleGetSyncStatus(
++    const base::ListValue& args) {
++  CHECK_EQ(1U, args.size());
++  const auto& callback_id = args[0].GetString();
++
++  base::DictValue out;
++  out.Set("status",
++          SyncStatusKey(pref_service_->GetInteger(prefs::kHeliumSyncLastStatus)));
++  out.Set("lastTime", pref_service_->GetDouble(prefs::kHeliumSyncLastTime));
++
++  base::ListValue missing;
++  helium::HeliumSyncService* service =
++      helium::HeliumSyncServiceFactory::GetForProfile(profile_);
++  if (service) {
++    for (const std::string& id : service->GetMissingExtensions()) {
++      missing.Append(id);
++    }
++  }
++  out.Set("missing", std::move(missing));
++
++  AllowJavascript();
++  ResolveJavascriptCallback(base::Value(callback_id), std::move(out));
 +}
 --- a/chrome/browser/ui/webui/settings/settings_ui.cc
 +++ b/chrome/browser/ui/webui/settings/settings_ui.cc
