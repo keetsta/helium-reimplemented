@@ -79,37 +79,77 @@ Chromium версия: **149.0.7827.155** (см. `chromium_version.txt`).
 - ВСЁ держать на диске `Z:` (исходник, билд, кэши, temp) — ничего не лить на C:.
 - Платформенные репо склонированы для справки: `Z:\helium-windows`, `Z:\helium-linux`.
 
-### Локальный цикл (Windows, два PS-скрипта в `Z:\helium-windows`)
+### Гочи сборки (проверено в бою)
+
+- **Правка любого `.gn`/`.gni` → `fork-rebuild.ps1` падает на `gn gen`**: x86-тулчейн
+  (`vcvarsall amd64_x86`, error 255) не поднимается из-под `Enter-VsDevShell` с `-arch=x64`.
+  Фикс: один раз прогнать `gn gen` в ЧИСТОМ bash/cmd (без DevShell):
+  `cd build/src/out/Default && DEPOT_TOOLS_WIN_TOOLCHAIN=0 ./gn.exe gen . --fail-on-unused-args`.
+  После успешного gen `fork-rebuild` снова инкрементальный.
+- **Перед пересборкой закрыть форк-браузер** (`out\Default\chrome.exe`) — он лочит
+  `chrome.dll`, линковка падает `permission denied`. Стоковый Helium (`%LOCALAPPDATA%\imput\Helium`)
+  можно не трогать, он держит другой файл.
+- **HTML5 `pattern=` в settings-страницах теряет бэкслеши** (HTML оборачивается в JS
+  template literal: `\d`→`d`, `\.`→`.`). Использовать `[0-9]` вместо `\d`, `[.]` вместо `\.`.
+  Проверка в живом DOM через DevTools-консоль (рекурсивный обход shadowRoot) — быстрее, чем
+  пересборка.
+- **WebUI C++↔TS**: образец — `chrome/browser/ui/webui/settings/services_schema_handler.cc`
+  (`RegisterMessageCallback` / `sendWithPromise` / `FireWebUIListener`). На TS-стороне
+  `sendWithPromise<T>(...)` обязательно с дженериком, иначе результат `unknown` (TS2345).
+  Handler уже зарегистрирован в `settings_ui.cc`; deps на factory из `//chrome/browser` в
+  `//chrome/browser/ui` НЕ нужны (ui и browser слиты в один `chrome.dll`) — не добавлять, иначе
+  лишний `gn gen`.
+
+### Локальный цикл (Windows, PS-скрипты в `Z:\helium-windows`)
 
 Окружение у обоих скриптов одинаковое: `TMP/TEMP → Z:\tmp`, `vs2026_install=Z:\Visual Studio`,
 `DEPOT_TOOLS_WIN_TOOLCHAIN=0`, затем `Enter-VsDevShell` (VS стоит в нестандартном `Z:\Visual Studio`).
 
-- **`fork-build.ps1` — холодная/полная сборка.** Гоняет `python3 build.py` (скачивание
-  Chromium → применение патчей → gn gen → ninja). Для быстрой итерации фич запускать с
-  `--dev` (component-build, быстрые инкрементальные пересборки). Текущее дерево собрано в
-  **official** (`is_official_build=true`, `is_component_build=false`) — годится для installer,
-  но НЕ для быстрых пересборок.
-- **`fork-rebuild.ps1` — инкрементальная пересборка.** Запускает ninja напрямую, минуя
-  build.py (НЕ перепатчивает уже готовое дерево):
-  `third_party\ninja\ninja.exe -C out\Default chrome chromedriver setup mini_installer`.
-  Пересобирает только изменённые файлы + линковка → минуты. Использовать когда правишь
-  исходник в `build\src` руками или после мелкой правки патча.
+**Release и Dev разведены по разным out-папкам — переключение режима БОЛЬШЕ НЕ затирает
+другую сборку.** `build.py` параметризован флагом `--out-dir` (дефолт `out/Default`, чтобы
+CI/штатное поведение не менялось). Оба PS-скрипта принимают `-Dev`:
+- **без `-Dev`** → RELEASE: `out\Default`, `is_official_build=true` (текущая раздаваемая сборка).
+- **с `-Dev`** → DEV: `out\Dev`, `is_component_build=true` (быстрые инкрементальные пересборки).
+
+- **`fork-build.ps1 [-Dev]` — холодная/полная сборка.** Гоняет `python3 build.py`
+  (скачивание Chromium → патчи → gn gen → ninja). `-Dev` добавляет `--dev --out-dir out/Dev`.
+  ВАЖНО: в `--dev` build.py патчи НЕ накладывает сам — встаёт на `Apply patches using quilt,
+  then press Enter`, патчи накатываешь quilt'ом вручную (два прохода: сначала
+  `helium-chromium/patches`, потом `patches`). Также в `--dev` НЕ прогоняется
+  name/domain-substitution и i18n → в браузере имя остаётся `Chromium`, строки английские.
+  В RELEASE (official) — всё применяется, имя `Helium Reimplemented`, переводы работают.
+- **`fork-rebuild.ps1 [-Dev]` — инкрементальная пересборка.** Запускает ninja напрямую,
+  минуя build.py (НЕ перепатчивает дерево): `ninja -C <out> chrome chromedriver setup
+  mini_installer`. `-Dev` → `out\Dev`, иначе `out\Default`. Пересобирает только изменённые
+  файлы + линковка → минуты. Использовать когда правишь исходник в `build\src` руками или
+  после мелкой правки патча.
 - **Installer из готового дерева**: `package.py` собирает раздаваемый
-  `helium*-installer.exe` из текущего official-билда.
-- **Где искать вывод**: `Z:\helium-windows\build\src\out\Default\chrome.exe` (бинарь),
-  installer — рядом после `package.py`.
+  `helium*-installer.exe` из official-билда (`out\Default`).
+- **Где искать вывод**: release — `build\src\out\Default\chrome.exe`, dev —
+  `build\src\out\Dev\chrome.exe`. Installer — рядом после `package.py`.
 
 ## Открытые следующие шаги
 
-1. **Фича #2 (синк расширений + закладок) — НАПИСАНО, не собрано.** Сервер `svc/sync` в
-   `Z:\helium-services` (Deno KV, `/sync/{extensions,bookmarks}`, Bearer-токен,
-   optimistic version) — протестирован локально через `deno serve`. Клиент — 3 патча в
-   `patches/series` (`sync-prefs-and-url`, `sync-client-engine`, `sync-settings-ui`):
-   prefs+токен+URL-резолвер, компонент `HeliumSyncService` (KeyedService, SimpleURLLoader),
-   тумблеры+поле токена в Settings. Закладки additive-only (папка "Synced", без удалений);
-   расширения не ставятся автоматом (только список missing для ручной установки). **Клиент
-   написан вслепую, не компилировался — нужна чистая `fork-build.ps1` для отлова фиксов.**
-   Не сделано: кнопка «sync now»+статус (нужен WebUI handler), onboarding-поверхность.
+1. **Фича #2 (синк расширений + закладок) — СОБРАНО (official, out\Default), идёт отладка
+   в браузере.** Сервер `svc/sync` в `Z:\helium-services` (Deno KV,
+   `/sync/{extensions,bookmarks}`, Bearer-токен, optimistic version) — закоммичен (`920d1be`,
+   НЕ запушен), протестирован. Локально для теста поднимается обёрткой
+   `Z:\tmp\sync-dev-server.ts` (`deno run ... sync-dev-server.ts`, порт 8000): срезает
+   префикс `/sync` как nginx в проде (клиент бьёт в `{origin}/sync/{collection}`, сервер
+   ждёт `/{collection}`). KV-файл `Z:\tmp\sync-data\sync.db`, лог `Z:\tmp\sync-server.log`.
+   Клиент — 3 патча (`sync-prefs-and-url`, `sync-client-engine`, `sync-settings-ui`):
+   prefs+токен+URL-резолвер, `HeliumSyncService` (KeyedService, eager — `Service
+   IsCreatedWithBrowserContext=true`), тумблеры+поле токена+тост копирования+ссылка на репо
+   services в Settings. Закладки additive-only со структурой; расширения не ставятся автоматом.
+   - **http://localhost разрешён в любом билде** (для локального теста): UI-паттерн поля
+     origin = `https://.*` ИЛИ `http://localhost|127.0.0.1`; C++ (`helium_services_helpers.cc`)
+     и так пускал http только на localhost (`SchemeIs(https) || IsLocalhost`).
+   - **ФИКС триггера (важно):** движок подписан на смену `kHeliumSyncToken` +
+     `kHeliumSyncExtensionsEnabled/BookmarksEnabled` в ctor (`helium_sync_service.cc`).
+     Раньше общий `ConfigurePrefChangeRegistrarFor` слушал только `kHeliumSyncEnabled` → если
+     токен вписать ПОСЛЕДНИМ, синк не дёргался. Условие синка: services on + consent + sync on
+     + токен непустой (`ShouldSync`).
+   - Не сделано: кнопка «sync now»+статус (нужен WebUI handler), onboarding-поверхность.
 2. Фича #3 (send-to-device): спроектировать поверх `minipush` (storageless Web Push в
    helium-services) — это и есть канал для send-to-device.
 3. Бэклог: иконка стокового Helium в списке импорта онбординга (Svelte); Вариант 2
