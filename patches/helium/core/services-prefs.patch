@@ -647,7 +647,7 @@
 +let instance: HeliumServicesChangeHandler|null = null;
 --- /dev/null
 +++ b/chrome/browser/ui/webui/settings/services_schema_handler.h
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,50 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -683,8 +683,14 @@
 +  void HandleChangelogRequest(const base::ListValue&);
 +  void HandleChangelogAcknowledgment(const base::ListValue&);
 +  void HandleSyncNow(const base::ListValue&);
++  void HandleResetServerData(const base::ListValue&);
 +  void HandleGetSyncStatus(const base::ListValue&);
++  void HandleGetSyncTrash(const base::ListValue&);
++  void HandleRestoreTrashItem(const base::ListValue&);
++  void HandleDeleteTrashItem(const base::ListValue&);
++  void HandleEmptyTrash(const base::ListValue&);
 +  void OnSyncStatusPrefChanged();
++  void OnSyncTrashPrefChanged();
 +
 +  raw_ptr<Profile> profile_ = nullptr;
 +  raw_ptr<PrefService> pref_service_ = nullptr;
@@ -692,6 +698,7 @@
 +};
 +
 +#endif  // CHROME_BROWSER_UI_WEBUI_SETTINGS_SERVICES_SCHEMA_HANDLER_H_
+--- /dev/null
 +++ b/components/helium_services/schema.cc
 @@ -0,0 +1,40 @@
 +// Copyright 2025 The Helium Authors
@@ -780,7 +787,7 @@
        "webui/settings/settings_localized_strings_privacy_sandbox_provider.cc",
 --- /dev/null
 +++ b/chrome/browser/ui/webui/settings/services_schema_handler.cc
-@@ -0,0 +1,139 @@
+@@ -0,0 +1,222 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -838,8 +845,28 @@
 +      base::BindRepeating(&HeliumServicesSchemaHandler::HandleSyncNow,
 +                          base::Unretained(this)));
 +  web_ui()->RegisterMessageCallback(
++      "heliumResetServerData",
++      base::BindRepeating(&HeliumServicesSchemaHandler::HandleResetServerData,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
 +      "getHeliumSyncStatus",
 +      base::BindRepeating(&HeliumServicesSchemaHandler::HandleGetSyncStatus,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "getHeliumSyncTrash",
++      base::BindRepeating(&HeliumServicesSchemaHandler::HandleGetSyncTrash,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "heliumRestoreTrashItem",
++      base::BindRepeating(&HeliumServicesSchemaHandler::HandleRestoreTrashItem,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "heliumDeleteTrashItem",
++      base::BindRepeating(&HeliumServicesSchemaHandler::HandleDeleteTrashItem,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "heliumEmptyTrash",
++      base::BindRepeating(&HeliumServicesSchemaHandler::HandleEmptyTrash,
 +                          base::Unretained(this)));
 +}
 +
@@ -850,6 +877,11 @@
 +      base::BindRepeating(
 +          &HeliumServicesSchemaHandler::OnSyncStatusPrefChanged,
 +          base::Unretained(this)));
++  pref_change_registrar_.Add(
++      prefs::kHeliumSyncBookmarkTrash,
++      base::BindRepeating(
++          &HeliumServicesSchemaHandler::OnSyncTrashPrefChanged,
++          base::Unretained(this)));
 +}
 +
 +void HeliumServicesSchemaHandler::OnJavascriptDisallowed() {
@@ -858,6 +890,10 @@
 +
 +void HeliumServicesSchemaHandler::OnSyncStatusPrefChanged() {
 +  FireWebUIListener("helium-sync-status-changed");
++}
++
++void HeliumServicesSchemaHandler::OnSyncTrashPrefChanged() {
++  FireWebUIListener("helium-sync-trash-changed");
 +}
 +
 +void HeliumServicesSchemaHandler::HandleChangelogRequest(
@@ -897,6 +933,15 @@
 +  }
 +}
 +
++void HeliumServicesSchemaHandler::HandleResetServerData(
++    const base::ListValue& args) {
++  helium::HeliumSyncService* service =
++      helium::HeliumSyncServiceFactory::GetForProfile(profile_);
++  if (service) {
++    service->ResetServerData();
++  }
++}
++
 +void HeliumServicesSchemaHandler::HandleGetSyncStatus(
 +    const base::ListValue& args) {
 +  CHECK_EQ(1U, args.size());
@@ -919,6 +964,51 @@
 +
 +  AllowJavascript();
 +  ResolveJavascriptCallback(base::Value(callback_id), std::move(out));
++}
++
++void HeliumServicesSchemaHandler::HandleGetSyncTrash(
++    const base::ListValue& args) {
++  CHECK_EQ(1U, args.size());
++  const auto& callback_id = args[0].GetString();
++
++  base::ListValue items;
++  helium::HeliumSyncService* service =
++      helium::HeliumSyncServiceFactory::GetForProfile(profile_);
++  if (service) {
++    items = service->GetTrashItems();
++  }
++
++  AllowJavascript();
++  ResolveJavascriptCallback(base::Value(callback_id), std::move(items));
++}
++
++void HeliumServicesSchemaHandler::HandleRestoreTrashItem(
++    const base::ListValue& args) {
++  CHECK_EQ(1U, args.size());
++  helium::HeliumSyncService* service =
++      helium::HeliumSyncServiceFactory::GetForProfile(profile_);
++  if (service && args[0].is_int()) {
++    service->RestoreTrashItem(args[0].GetInt());
++  }
++}
++
++void HeliumServicesSchemaHandler::HandleDeleteTrashItem(
++    const base::ListValue& args) {
++  CHECK_EQ(1U, args.size());
++  helium::HeliumSyncService* service =
++      helium::HeliumSyncServiceFactory::GetForProfile(profile_);
++  if (service && args[0].is_int()) {
++    service->DeleteTrashItem(args[0].GetInt());
++  }
++}
++
++void HeliumServicesSchemaHandler::HandleEmptyTrash(
++    const base::ListValue& args) {
++  helium::HeliumSyncService* service =
++      helium::HeliumSyncServiceFactory::GetForProfile(profile_);
++  if (service) {
++    service->EmptyTrash();
++  }
 +}
 --- a/chrome/browser/ui/webui/settings/settings_ui.cc
 +++ b/chrome/browser/ui/webui/settings/settings_ui.cc

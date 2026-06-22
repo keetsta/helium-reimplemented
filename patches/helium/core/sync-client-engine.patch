@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/components/helium_sync/helium_sync_service.h
-@@ -0,0 +1,123 @@
+@@ -0,0 +1,214 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -15,19 +15,17 @@
 +#include "base/functional/callback.h"
 +#include "base/memory/raw_ptr.h"
 +#include "base/memory/weak_ptr.h"
++#include "base/scoped_observation.h"
++#include "base/timer/timer.h"
 +#include "base/values.h"
++#include "components/bookmarks/browser/base_bookmark_model_observer.h"
++#include "components/bookmarks/browser/bookmark_model.h"
 +#include "components/keyed_service/core/keyed_service.h"
 +#include "components/prefs/pref_change_registrar.h"
++#include "extensions/browser/extension_registry.h"
++#include "extensions/browser/extension_registry_observer.h"
 +
 +class PrefService;
-+
-+namespace bookmarks {
-+class BookmarkModel;
-+}
-+
-+namespace extensions {
-+class ExtensionRegistry;
-+}
 +
 +namespace network {
 +class SharedURLLoaderFactory;
@@ -39,16 +37,28 @@
 +// Cross-device sync of the extension list and bookmarks against the
 +// self-hosted sync service (`{origin}/sync/{collection}`).
 +//
-+// This is intentionally conservative because it touches user data:
-+//   - Bookmarks are additive only. Remote bookmarks missing locally are added
-+//     in their original location (same root and folder path, folders created
-+//     as needed); local bookmarks are never deleted to mirror the server.
-+//   - Extensions are reported, not silently installed. The set of synced
-+//     extension ids is uploaded, and remote ids missing locally are exposed
-+//     via GetMissingExtensions() so the UI can offer a user-initiated install.
-+//     Silently installing extensions pushed by a server is an attack surface
-+//     we deliberately avoid.
-+class HeliumSyncService : public KeyedService {
++// SAFETY MODEL. This touches user data, so deletions are designed so a bug or
++// accident can never permanently destroy anything:
++//   - The engine keeps a per-collection *baseline* (a pref snapshot of what
++//     this device knew at its last successful sync). A remote deletion is only
++//     ever *enacted* for an item still in our baseline AND still held locally
++//     (see the merge table in the .cc). If the baseline is empty or corrupt,
++//     every item degrades to an "add", so the worst case is additive, never
++//     destructive. The first sync against a fresh/legacy server is thus always
++//     a pure union and cannot delete.
++//   - Bookmarks deleted on another device are moved to a recoverable trash bin
++//     (a pref, never serialized back into the sync blob) before the local node
++//     is removed. The user restores or purges from settings. Only leaf urls are
++//     ever auto-removed; folders are only created, never auto-deleted.
++//   - Extensions are reported, not silently (un)installed. A remote tombstone
++//     only stops the "missing" nag and prevents a locally-present extension
++//     from resurrecting one uninstalled elsewhere; it never uninstalls.
++//
++// The server stores `data` as an opaque blob, so the whole tombstone model is
++// client-side; the server is an untrusted, dumb versioned store.
++class HeliumSyncService : public KeyedService,
++                          public bookmarks::BaseBookmarkModelObserver,
++                          public extensions::ExtensionRegistryObserver {
 + public:
 +  // Result of the most recent sync, surfaced to settings/onboarding via prefs.
 +  enum class Status : int {
@@ -72,6 +82,12 @@
 +  // ("sync now" button). No-op if syncing is disabled or already in progress.
 +  void SyncNow();
 +
++  // Overwrites the server with the local state: pushes local items as the live
++  // set with an empty tombstone map, and resets the baseline to local. Use to
++  // purge accumulated cruft/tombstones from the server namespace. Never deletes
++  // anything locally.
++  void ResetServerData();
++
 +  // Extension ids present on the server but not installed locally, from the
 +  // last completed extensions sync. Drives the "missing extensions" UI.
 +  const std::vector<std::string>& GetMissingExtensions() const {
@@ -80,33 +96,97 @@
 +
 +  Status last_status() const { return last_status_; }
 +
++  // Trash bin (deleted-elsewhere bookmarks). Backed by the
++  // kHeliumSyncBookmarkTrash list pref; each entry is {root, path, title, url,
++  // deletedAt}. `index` refers to position in that list.
++  base::ListValue GetTrashItems() const;
++  // Re-adds the trashed bookmark to its original location and removes it from
++  // the trash. The re-add is a fresh local add, so the next sync clears the
++  // server tombstone (the bookmark comes back on every device).
++  void RestoreTrashItem(int index);
++  // Drops a single trash entry without restoring it (stays gone everywhere).
++  void DeleteTrashItem(int index);
++  void EmptyTrash();
++
++  // KeyedService:
++  void Shutdown() override;
++
++  // BaseBookmarkModelObserver:
++  void BookmarkModelChanged() override;
++  void BookmarkModelLoaded(bool ids_reassigned) override;
++
++  // ExtensionRegistryObserver:
++  void OnExtensionLoaded(content::BrowserContext* browser_context,
++                         const extensions::Extension* extension) override;
++  void OnExtensionUninstalled(content::BrowserContext* browser_context,
++                              const extensions::Extension* extension,
++                              extensions::UninstallReason reason) override;
++
 + private:
-+  // One collection's GET→merge→PUT round-trip.
-+  void SyncCollection(const std::string& collection);
++  // Shared implementation of SyncNow()/ResetServerData(). `reset` overwrites
++  // the server with local state instead of merging the server's tombstone map.
++  void RunSync(bool reset);
++
++  // One collection's GET -> merge -> PUT round-trip.
++  void SyncCollection(const std::string& collection, bool reset);
 +  void OnCollectionFetched(const std::string& collection,
++                           bool reset,
 +                           std::unique_ptr<network::SimpleURLLoader> loader,
 +                           std::optional<std::string> response_body);
 +  void PushCollection(const std::string& collection,
 +                      int base_version,
-+                      base::DictValue payload);
++                      base::DictValue payload,
++                      base::DictValue new_baseline,
++                      base::ListValue to_trash);
 +  void OnCollectionPushed(const std::string& collection,
++                          base::DictValue new_baseline,
++                          base::ListValue to_trash,
 +                          std::unique_ptr<network::SimpleURLLoader> loader,
 +                          std::optional<std::string> response_body);
 +
-+  // Collection (de)serialization. These read/write the live BookmarkModel and
-+  // ExtensionRegistry. `remote` is the server's `data` field (may be null).
-+  base::ListValue SerializeExtensions() const;
-+  void ApplyRemoteExtensions(const base::ListValue& remote);
++  // Core tombstone merge for one collection. A standard 3-way merge: `base` is
++  // the baseline pref (the last server view this device acknowledged, as
++  // {items, tombstones}); `server_items`/`server_tombstones` are the current
++  // server view (after legacy-list migration); local presence comes from the
++  // live model/registry. Returns the converged {items, tombstones} to PUT and
++  // fills `out_new_baseline` with that same converged view (persisted only
++  // after a 200). Safe additive mutations (bookmarks case J: materialize a
++  // remote add) are applied inline because they are harmless if the PUT later
++  // fails. The single destructive action (bookmarks case H: an item deleted
++  // elsewhere) is deferred: the bookmark item dicts are appended to
++  // `out_to_trash` and only enacted after a 200, so a conflict/error never
++  // destroys anything. Extensions never change install state.
++  base::DictValue MergeCollection(const std::string& collection,
++                                  const base::DictValue& server_items,
++                                  const base::DictValue& server_tombstones,
++                                  bool reset,
++                                  base::DictValue* out_new_baseline,
++                                  base::ListValue* out_to_trash);
 +
-+  base::ListValue SerializeBookmarks() const;
-+  void ApplyRemoteBookmarks(const base::ListValue& remote);
++  // Live local state as a key->itemData map (the unit the merge works in).
++  // Bookmarks: key = root\x1f path...\x1f url, item = {root,path,title,url}.
++  // Extensions: key = id, item = {}.
++  base::DictValue LocalItems(const std::string& collection) const;
++
++  // Adds a single bookmark item dict ({root, path, title, url}) to the model at
++  // its recorded location, creating folders as needed and deduping within the
++  // target folder. Returns true if a node was added. Sets applying_remote_.
++  bool MaterializeBookmark(const base::DictValue& item);
++  // Removes the local leaf bookmark matching `item` (if present) and appends it
++  // to the trash pref. Only leaf urls are touched. Sets applying_remote_.
++  void TrashBookmark(const base::DictValue& item);
++  // Non-creating lookup of the leaf url node described by `item`, or nullptr.
++  const bookmarks::BookmarkNode* FindBookmarkLeaf(
++      const base::DictValue& item) const;
 +
 +  void SetStatus(Status status);
 +  void OnSyncPrefChanged();
++  void ScheduleSync();  // debounced trigger from observers
 +
 +  int VersionPrefFor(const std::string& collection) const;
 +  void StoreVersionFor(const std::string& collection, int version);
 +  bool CollectionEnabled(const std::string& collection) const;
++  const char* BaselinePrefFor(const std::string& collection) const;
 +
 +  raw_ptr<PrefService> prefs_;
 +  raw_ptr<bookmarks::BookmarkModel> bookmark_model_;
@@ -114,9 +194,20 @@
 +  scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
 +
 +  PrefChangeRegistrar pref_change_registrar_;
++  base::ScopedObservation<bookmarks::BookmarkModel,
++                          bookmarks::BookmarkModelObserver>
++      bookmark_observation_{this};
++  base::ScopedObservation<extensions::ExtensionRegistry,
++                          extensions::ExtensionRegistryObserver>
++      extension_observation_{this};
++  base::OneShotTimer debounce_timer_;
++
 +  std::vector<std::string> missing_extensions_;
 +  Status last_status_ = Status::kIdle;
 +  int collections_in_flight_ = 0;
++  // True while we mutate the model from a merge/restore, so our own changes
++  // don't re-trigger a sync through the observers.
++  bool applying_remote_ = false;
 +
 +  base::WeakPtrFactory<HeliumSyncService> weak_factory_{this};
 +};
@@ -126,27 +217,33 @@
 +#endif  // COMPONENTS_HELIUM_SYNC_HELIUM_SYNC_SERVICE_H_
 --- /dev/null
 +++ b/components/helium_sync/helium_sync_service.cc
-@@ -0,0 +1,471 @@
+@@ -0,0 +1,863 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
 +
 +#include "components/helium_sync/helium_sync_service.h"
 +
++#include <set>
++#include <string>
 +#include <utility>
 +
 +#include "base/functional/bind.h"
 +#include "base/json/json_reader.h"
 +#include "base/json/json_writer.h"
++#include "base/location.h"
 +#include "base/logging.h"
 +#include "base/strings/utf_string_conversions.h"
 +#include "base/time/time.h"
 +#include "components/bookmarks/browser/bookmark_model.h"
 +#include "components/bookmarks/browser/bookmark_node.h"
++#include "components/bookmarks/common/bookmark_metrics.h"
 +#include "components/helium_services/helium_services_helpers.h"
 +#include "components/helium_services/pref_names.h"
 +#include "components/prefs/pref_service.h"
++#include "components/prefs/scoped_user_pref_update.h"
 +#include "extensions/browser/extension_registry.h"
++#include "extensions/common/extension.h"
 +#include "extensions/common/extension_set.h"
 +#include "net/base/load_flags.h"
 +#include "net/traffic_annotation/network_traffic_annotation.h"
@@ -167,11 +264,25 @@
 +constexpr int kFetchTimeoutSeconds = 30;
 +constexpr size_t kMaxResponseBytes = 1024 * 1024;  // mirrors server cap
 +
++// Debounce window for live (observer-driven) syncs, so a bulk operation such as
++// an import coalesces into a single sync rather than hammering the server.
++constexpr int kDebounceSeconds = 4;
++
 +// Identifies which permanent folder a bookmark lives under, so it can be
 +// restored to the same root on another device.
 +constexpr char kRootBar[] = "bar";
 +constexpr char kRootOther[] = "other";
 +constexpr char kRootMobile[] = "mobile";
++
++// Field separator used to build a stable per-item key from a bookmark's
++// root/path/url. 0x1f (unit separator) never occurs in real paths or urls; the
++// JSON writer escapes it as  so the key round-trips through the server.
++constexpr char kKeySep = '\x1f';
++
++// Keys inside the server blob and the baseline pref.
++constexpr char kItemsKey[] = "items";
++constexpr char kTombstonesKey[] = "tombstones";
++constexpr char kDeletedAtKey[] = "deletedAt";
 +
 +constexpr net::NetworkTrafficAnnotationTag kSyncTrafficTag =
 +    net::DefineNetworkTrafficAnnotation("helium_sync", R"(
@@ -191,6 +302,27 @@
 +            cookies_allowed: NO
 +            setting: "Controlled by the Helium services sync toggle."
 +        })");
++
++std::string JoinPath(const base::ListValue& path) {
++  std::string out;
++  for (const base::Value& segment : path) {
++    if (!segment.is_string()) {
++      continue;
++    }
++    out.push_back(kKeySep);
++    out.append(segment.GetString());
++  }
++  return out;
++}
++
++// Stable identity of a bookmark: location + url, deliberately excluding the
++// title so a rename keeps the same item. Moving a bookmark between folders is
++// modelled as delete+add, which is acceptable.
++std::string BookmarkKey(const std::string& root,
++                        const base::ListValue& path,
++                        const std::string& url) {
++  return root + JoinPath(path) + kKeySep + url;
++}
 +
 +}  // namespace
 +
@@ -222,9 +354,25 @@
 +      prefs::kHeliumSyncBookmarksEnabled,
 +      base::BindRepeating(&HeliumSyncService::OnSyncPrefChanged,
 +                          weak_factory_.GetWeakPtr()));
++
++  // Live sync: a local change to bookmarks or the extension set schedules a
++  // debounced sync so deletions/additions propagate without a manual click.
++  if (bookmark_model_) {
++    bookmark_observation_.Observe(bookmark_model_);
++  }
++  if (extension_registry_) {
++    extension_observation_.Observe(extension_registry_);
++  }
 +}
 +
 +HeliumSyncService::~HeliumSyncService() = default;
++
++void HeliumSyncService::Shutdown() {
++  debounce_timer_.Stop();
++  bookmark_observation_.Reset();
++  extension_observation_.Reset();
++  pref_change_registrar_.RemoveAll();
++}
 +
 +void HeliumSyncService::OnSyncPrefChanged() {
 +  if (helium::ShouldSync(*prefs_)) {
@@ -232,7 +380,46 @@
 +  }
 +}
 +
++void HeliumSyncService::ScheduleSync() {
++  if (applying_remote_ || !helium::ShouldSync(*prefs_)) {
++    return;
++  }
++  debounce_timer_.Start(FROM_HERE, base::Seconds(kDebounceSeconds),
++                        base::BindOnce(&HeliumSyncService::SyncNow,
++                                       weak_factory_.GetWeakPtr()));
++}
++
++void HeliumSyncService::BookmarkModelChanged() {
++  ScheduleSync();
++}
++
++void HeliumSyncService::BookmarkModelLoaded(bool ids_reassigned) {
++  // The model is only readable once loaded; kick an initial sync then.
++  ScheduleSync();
++}
++
++void HeliumSyncService::OnExtensionLoaded(
++    content::BrowserContext* browser_context,
++    const extensions::Extension* extension) {
++  ScheduleSync();
++}
++
++void HeliumSyncService::OnExtensionUninstalled(
++    content::BrowserContext* browser_context,
++    const extensions::Extension* extension,
++    extensions::UninstallReason reason) {
++  ScheduleSync();
++}
++
 +void HeliumSyncService::SyncNow() {
++  RunSync(/*reset=*/false);
++}
++
++void HeliumSyncService::ResetServerData() {
++  RunSync(/*reset=*/true);
++}
++
++void HeliumSyncService::RunSync(bool reset) {
 +  if (!helium::ShouldSync(*prefs_)) {
 +    return;
 +  }
@@ -244,11 +431,11 @@
 +
 +  if (CollectionEnabled(kExtensionsCollection)) {
 +    ++collections_in_flight_;
-+    SyncCollection(kExtensionsCollection);
++    SyncCollection(kExtensionsCollection, reset);
 +  }
 +  if (CollectionEnabled(kBookmarksCollection)) {
 +    ++collections_in_flight_;
-+    SyncCollection(kBookmarksCollection);
++    SyncCollection(kBookmarksCollection, reset);
 +  }
 +
 +  if (collections_in_flight_ == 0) {
@@ -285,7 +472,16 @@
 +  }
 +}
 +
-+void HeliumSyncService::SyncCollection(const std::string& collection) {
++const char* HeliumSyncService::BaselinePrefFor(
++    const std::string& collection) const {
++  if (collection == kExtensionsCollection) {
++    return prefs::kHeliumSyncExtensionBaseline;
++  }
++  return prefs::kHeliumSyncBookmarkBaseline;
++}
++
++void HeliumSyncService::SyncCollection(const std::string& collection,
++                                       bool reset) {
 +  GURL url = helium::GetSyncCollectionURL(*prefs_, collection);
 +  if (!url.is_valid()) {
 +    SetStatus(Status::kError);
@@ -312,12 +508,14 @@
 +  loader_ptr->DownloadToString(
 +      url_loader_factory_.get(),
 +      base::BindOnce(&HeliumSyncService::OnCollectionFetched,
-+                     weak_factory_.GetWeakPtr(), collection, std::move(loader)),
++                     weak_factory_.GetWeakPtr(), collection, reset,
++                     std::move(loader)),
 +      kMaxResponseBytes);
 +}
 +
 +void HeliumSyncService::OnCollectionFetched(
 +    const std::string& collection,
++    bool reset,
 +    std::unique_ptr<network::SimpleURLLoader> loader,
 +    std::optional<std::string> response_body) {
 +  if (!response_body) {
@@ -338,30 +536,240 @@
 +  int remote_version = parsed->FindInt("version").value_or(0);
 +  const base::Value* data = parsed->Find("data");
 +
-+  // Apply the remote data into the live model (additive).
-+  if (data && data->is_list()) {
-+    if (collection == kExtensionsCollection) {
-+      ApplyRemoteExtensions(data->GetList());
-+    } else if (collection == kBookmarksCollection) {
-+      ApplyRemoteBookmarks(data->GetList());
++  // Normalize the server blob into {items, tombstones} maps. The new format is
++  // a dict with those keys; a bare list is the legacy additive format, which we
++  // read as all-live with no tombstones (so a first sync against legacy data
++  // can never delete). data == null means an empty namespace.
++  base::DictValue server_items;
++  base::DictValue server_tombstones;
++  if (data && data->is_dict()) {
++    const base::DictValue& d = data->GetDict();
++    if (const base::DictValue* items = d.FindDict(kItemsKey)) {
++      server_items = items->Clone();
++    }
++    if (const base::DictValue* tombs = d.FindDict(kTombstonesKey)) {
++      server_tombstones = tombs->Clone();
++    }
++  } else if (data && data->is_list()) {
++    // Legacy migration: key each list entry by our scheme.
++    for (const base::Value& entry : data->GetList()) {
++      if (collection == kExtensionsCollection && entry.is_string()) {
++        server_items.Set(entry.GetString(), base::DictValue());
++      } else if (collection == kBookmarksCollection && entry.is_dict()) {
++        const base::DictValue& dict = entry.GetDict();
++        const std::string* url = dict.FindString("url");
++        const std::string* root = dict.FindString("root");
++        const base::ListValue* path = dict.FindList("path");
++        if (!url) {
++          continue;
++        }
++        const base::ListValue empty;
++        server_items.Set(
++            BookmarkKey(root ? *root : kRootOther, path ? *path : empty, *url),
++            dict.Clone());
++      }
 +    }
 +  }
 +
-+  // Build the merged local view to push back up.
++  base::DictValue new_baseline;
++  base::ListValue to_trash;
++  base::DictValue merged = MergeCollection(collection, server_items,
++                                           server_tombstones, reset,
++                                           &new_baseline, &to_trash);
++
 +  base::DictValue payload;
-+  if (collection == kExtensionsCollection) {
-+    payload.Set("data", SerializeExtensions());
-+  } else {
-+    payload.Set("data", SerializeBookmarks());
-+  }
++  payload.Set("data", std::move(merged));
 +  payload.Set("baseVersion", remote_version);
 +
-+  PushCollection(collection, remote_version, std::move(payload));
++  PushCollection(collection, remote_version, std::move(payload),
++                 std::move(new_baseline), std::move(to_trash));
++}
++
++base::DictValue HeliumSyncService::MergeCollection(
++    const std::string& collection,
++    const base::DictValue& server_items,
++    const base::DictValue& server_tombstones,
++    bool reset,
++    base::DictValue* out_new_baseline,
++    base::ListValue* out_to_trash) {
++  const bool is_bookmarks = (collection == kBookmarksCollection);
++  if (collection == kExtensionsCollection) {
++    missing_extensions_.clear();
++  }
++
++  base::DictValue local = LocalItems(collection);
++
++  base::DictValue out_items;
++  base::DictValue out_tombstones;
++
++  // Reset: ignore the server's tombstones/cruft and publish local as the whole
++  // truth. Never deletes locally.
++  if (reset) {
++    out_items = local.Clone();
++    base::DictValue baseline;
++    baseline.Set(kItemsKey, out_items.Clone());
++    baseline.Set(kTombstonesKey, base::DictValue());
++    *out_new_baseline = std::move(baseline);
++    base::DictValue data;
++    data.Set(kItemsKey, std::move(out_items));
++    data.Set(kTombstonesKey, base::DictValue());
++    return data;
++  }
++
++  // Baseline = the last server view this device acknowledged (3-way common
++  // ancestor).
++  const base::DictValue& base_pref = prefs_->GetDict(BaselinePrefFor(collection));
++  const base::DictValue* base_items = base_pref.FindDict(kItemsKey);
++  const base::DictValue* base_tombs = base_pref.FindDict(kTombstonesKey);
++
++  // Union of every key seen anywhere.
++  std::set<std::string> keys;
++  auto collect = [&keys](const base::DictValue& d) {
++    for (auto pair : d) {
++      keys.insert(pair.first);
++    }
++  };
++  collect(local);
++  collect(server_items);
++  collect(server_tombstones);
++  if (base_items) {
++    collect(*base_items);
++  }
++  if (base_tombs) {
++    collect(*base_tombs);
++  }
++
++  enum class State { kLive, kTomb, kAbsent };
++  auto now = base::Time::Now().InSecondsFSinceUnixEpoch();
++
++  for (const std::string& key : keys) {
++    const bool local_present = local.contains(key);
++    const base::DictValue* local_item =
++        local_present ? local.FindDict(key) : nullptr;
++
++    State base_state = State::kAbsent;
++    if (base_items && base_items->contains(key)) {
++      base_state = State::kLive;
++    } else if (base_tombs && base_tombs->contains(key)) {
++      base_state = State::kTomb;
++    }
++
++    State server_state = State::kAbsent;
++    if (server_items.contains(key)) {
++      server_state = State::kLive;
++    } else if (server_tombstones.contains(key)) {
++      server_state = State::kTomb;
++    }
++
++    // The item payload to carry forward, best source first.
++    auto pick_item = [&]() -> base::DictValue {
++      if (local_item) {
++        return local_item->Clone();
++      }
++      if (const base::DictValue* s = server_items.FindDict(key)) {
++        return s->Clone();
++      }
++      if (base_items) {
++        if (const base::DictValue* b = base_items->FindDict(key)) {
++          return b->Clone();
++        }
++      }
++      return base::DictValue();
++    };
++
++    // deletedAt to record on a tombstone (preserve an existing one).
++    auto pick_deleted_at = [&]() -> double {
++      if (const base::DictValue* t = server_tombstones.FindDict(key)) {
++        if (auto v = t->FindDouble(kDeletedAtKey)) {
++          return *v;
++        }
++      }
++      if (base_tombs) {
++        if (const base::DictValue* t = base_tombs->FindDict(key)) {
++          if (auto v = t->FindDouble(kDeletedAtKey)) {
++            return *v;
++          }
++        }
++      }
++      return now;
++    };
++
++    auto emit_live = [&]() {
++      out_items.Set(key, pick_item());
++    };
++    auto emit_tomb = [&]() {
++      base::DictValue t;
++      t.Set(kDeletedAtKey, pick_deleted_at());
++      out_tombstones.Set(key, std::move(t));
++    };
++
++    // Classify the local change relative to the baseline.
++    // For extensions, presence with a tomb baseline is "stale" (we never
++    // uninstall), NOT a re-add; for bookmarks a case-H deletion removes the
++    // node, so presence with a tomb baseline means the user re-created it.
++    if (local_present) {
++      if (base_state == State::kLive) {
++        // KEPT.
++        if (server_state == State::kTomb) {
++          // CASE H: deleted on another device.
++          emit_tomb();
++          if (is_bookmarks) {
++            out_to_trash->Append(pick_item());  // enacted only after a 200
++          }
++          // extensions: honored, never uninstalled, not reported missing.
++        } else {
++          // live, or missing (server lost it / legacy) -> re-assert live.
++          emit_live();
++        }
++      } else if (base_state == State::kTomb && !is_bookmarks) {
++        // Extension still installed though we acknowledged a tombstone. Honor
++        // the tombstone to avoid a resurrection flap, unless another device has
++        // explicitly revived it (server live).
++        if (server_state == State::kLive) {
++          emit_live();
++        } else {
++          emit_tomb();
++        }
++      } else {
++        // ADDED locally (base unknown, or a bookmark re-created after trashing)
++        // -> local presence wins, clearing any server tombstone.
++        emit_live();
++      }
++    } else {
++      if (base_state == State::kLive) {
++        // DELETED locally -> propagate as a tombstone.
++        emit_tomb();
++      } else if (server_state == State::kLive) {
++        // ABSENT locally but present on the server: a remote add (CASE J).
++        if (is_bookmarks) {
++          MaterializeBookmark(*server_items.FindDict(key));
++        } else {
++          missing_extensions_.push_back(key);
++        }
++        emit_live();
++      } else if (server_state == State::kTomb) {
++        emit_tomb();
++      }
++      // else absent everywhere -> drop.
++    }
++  }
++
++  base::DictValue baseline;
++  baseline.Set(kItemsKey, out_items.Clone());
++  baseline.Set(kTombstonesKey, out_tombstones.Clone());
++  *out_new_baseline = std::move(baseline);
++
++  base::DictValue data;
++  data.Set(kItemsKey, std::move(out_items));
++  data.Set(kTombstonesKey, std::move(out_tombstones));
++  return data;
 +}
 +
 +void HeliumSyncService::PushCollection(const std::string& collection,
 +                                       int base_version,
-+                                       base::DictValue payload) {
++                                       base::DictValue payload,
++                                       base::DictValue new_baseline,
++                                       base::ListValue to_trash) {
 +  GURL url = helium::GetSyncCollectionURL(*prefs_, collection);
 +  if (!url.is_valid()) {
 +    SetStatus(Status::kError);
@@ -391,12 +799,16 @@
 +  loader_ptr->DownloadToString(
 +      url_loader_factory_.get(),
 +      base::BindOnce(&HeliumSyncService::OnCollectionPushed,
-+                     weak_factory_.GetWeakPtr(), collection, std::move(loader)),
++                     weak_factory_.GetWeakPtr(), collection,
++                     std::move(new_baseline), std::move(to_trash),
++                     std::move(loader)),
 +      kMaxResponseBytes);
 +}
 +
 +void HeliumSyncService::OnCollectionPushed(
 +    const std::string& collection,
++    base::DictValue new_baseline,
++    base::ListValue to_trash,
 +    std::unique_ptr<network::SimpleURLLoader> loader,
 +    std::optional<std::string> response_body) {
 +  --collections_in_flight_;
@@ -407,9 +819,23 @@
 +  }
 +
 +  if (response_body && response_code == 200) {
-+    auto parsed = base::JSONReader::ReadDict(*response_body, base::JSON_PARSE_RFC);
++    auto parsed =
++        base::JSONReader::ReadDict(*response_body, base::JSON_PARSE_RFC);
 +    if (parsed) {
 +      StoreVersionFor(collection, parsed->FindInt("version").value_or(0));
++    }
++    // The PUT is authoritative now: persist the baseline and only now enact the
++    // deferred deletions (move them to the recoverable trash). A conflict/error
++    // skips both, so nothing is ever destroyed on a failed sync.
++    prefs_->SetDict(BaselinePrefFor(collection), std::move(new_baseline));
++    if (!to_trash.empty()) {
++      applying_remote_ = true;
++      for (const base::Value& item : to_trash) {
++        if (item.is_dict()) {
++          TrashBookmark(item.GetDict());
++        }
++      }
++      applying_remote_ = false;
 +    }
 +    if (collections_in_flight_ == 0) {
 +      SetStatus(Status::kSuccess);
@@ -417,63 +843,36 @@
 +    return;
 +  }
 +
-+  // A 409 means another device wrote concurrently. The next SyncNow() will
-+  // re-fetch the newer version and merge again; we don't auto-loop here to
-+  // keep the blind-written path simple.
++  // A 409 means another device wrote concurrently. The next sync will re-fetch
++  // the newer version and merge again; we don't auto-loop here.
 +  LOG(ERROR) << "helium_sync: PUT " << collection
 +             << " failed, code = " << response_code;
 +  SetStatus(response_code == 409 ? Status::kConflictRetrying : Status::kError);
 +}
 +
-+base::ListValue HeliumSyncService::SerializeExtensions() const {
-+  base::ListValue list;
-+  if (!extension_registry_) {
-+    return list;
-+  }
-+  for (const auto& extension : extension_registry_->enabled_extensions()) {
-+    list.Append(extension->id());
-+  }
-+  return list;
-+}
++base::DictValue HeliumSyncService::LocalItems(
++    const std::string& collection) const {
++  base::DictValue items;
 +
-+void HeliumSyncService::ApplyRemoteExtensions(const base::ListValue& remote) {
-+  missing_extensions_.clear();
-+  if (!extension_registry_) {
-+    return;
-+  }
-+
-+  const extensions::ExtensionSet& enabled =
-+      extension_registry_->enabled_extensions();
-+  const extensions::ExtensionSet& disabled =
-+      extension_registry_->disabled_extensions();
-+
-+  for (const base::Value& value : remote) {
-+    if (!value.is_string()) {
-+      continue;
++  if (collection == kExtensionsCollection) {
++    if (!extension_registry_) {
++      return items;
 +    }
-+    const std::string& id = value.GetString();
-+    // Report ids we don't have at all. We never install silently.
-+    if (!enabled.Contains(id) && !disabled.Contains(id)) {
-+      missing_extensions_.push_back(id);
++    for (const auto& extension : extension_registry_->enabled_extensions()) {
++      items.Set(extension->id(), base::DictValue());
 +    }
++    return items;
 +  }
-+}
 +
-+base::ListValue HeliumSyncService::SerializeBookmarks() const {
-+  base::ListValue list;
 +  if (!bookmark_model_ || !bookmark_model_->loaded()) {
-+    return list;
++    return items;
 +  }
 +
-+  // Each permanent root is walked recursively, recording every bookmark as
-+  // {root, path, title, url} so its folder location can be recreated exactly
-+  // on another device.
 +  struct Frame {
 +    const bookmarks::BookmarkNode* node;
 +    std::string root;
 +    base::ListValue path;
 +  };
-+
 +  std::vector<Frame> stack;
 +  auto push_root = [&](const bookmarks::BookmarkNode* node,
 +                       const std::string& root) {
@@ -488,46 +887,51 @@
 +  while (!stack.empty()) {
 +    Frame frame = std::move(stack.back());
 +    stack.pop_back();
-+
 +    for (const auto& child : frame.node->children()) {
 +      if (child->is_folder()) {
 +        base::ListValue child_path = frame.path.Clone();
 +        child_path.Append(base::UTF16ToUTF8(child->GetTitle()));
 +        stack.push_back({child.get(), frame.root, std::move(child_path)});
 +      } else if (child->is_url()) {
++        std::string url = child->url().spec();
 +        base::DictValue entry;
 +        entry.Set("root", frame.root);
 +        entry.Set("path", frame.path.Clone());
 +        entry.Set("title", base::UTF16ToUTF8(child->GetTitle()));
-+        entry.Set("url", child->url().spec());
-+        list.Append(std::move(entry));
++        entry.Set("url", url);
++        items.Set(BookmarkKey(frame.root, frame.path, url), std::move(entry));
 +      }
 +    }
 +  }
-+  return list;
++  return items;
 +}
 +
-+void HeliumSyncService::ApplyRemoteBookmarks(const base::ListValue& remote) {
++const bookmarks::BookmarkNode* HeliumSyncService::FindBookmarkLeaf(
++    const base::DictValue& item) const {
 +  if (!bookmark_model_ || !bookmark_model_->loaded()) {
-+    return;
++    return nullptr;
++  }
++  const std::string* url_str = item.FindString("url");
++  const std::string* root_name = item.FindString("root");
++  const base::ListValue* path = item.FindList("path");
++  if (!url_str) {
++    return nullptr;
++  }
++  GURL url(*url_str);
++  if (!url.is_valid()) {
++    return nullptr;
 +  }
 +
-+  auto root_for = [&](const std::string& name) -> const bookmarks::BookmarkNode* {
-+    if (name == kRootBar) {
-+      return bookmark_model_->bookmark_bar_node();
-+    }
-+    if (name == kRootMobile) {
-+      return bookmark_model_->mobile_node();
-+    }
-+    return bookmark_model_->other_node();
-+  };
++  const bookmarks::BookmarkNode* current =
++      bookmark_model_->other_node();
++  if (root_name && *root_name == kRootBar) {
++    current = bookmark_model_->bookmark_bar_node();
++  } else if (root_name && *root_name == kRootMobile) {
++    current = bookmark_model_->mobile_node();
++  }
 +
-+  // Walks/creates the folder path under `root`, returning the target folder.
-+  auto resolve_folder =
-+      [&](const bookmarks::BookmarkNode* root,
-+          const base::ListValue& path) -> const bookmarks::BookmarkNode* {
-+    const bookmarks::BookmarkNode* current = root;
-+    for (const base::Value& segment : path) {
++  if (path) {
++    for (const base::Value& segment : *path) {
 +      if (!segment.is_string()) {
 +        continue;
 +      }
@@ -540,52 +944,131 @@
 +        }
 +      }
 +      if (!next) {
-+        next = bookmark_model_->AddFolder(current, current->children().size(),
-+                                          title);
++        return nullptr;  // folder path doesn't exist -> leaf can't either
 +      }
 +      current = next;
 +    }
-+    return current;
-+  };
-+
-+  for (const base::Value& value : remote) {
-+    if (!value.is_dict()) {
-+      continue;
-+    }
-+    const base::DictValue& dict = value.GetDict();
-+    const std::string* url_str = dict.FindString("url");
-+    const std::string* title = dict.FindString("title");
-+    const std::string* root_name = dict.FindString("root");
-+    const base::ListValue* path = dict.FindList("path");
-+    if (!url_str) {
-+      continue;
-+    }
-+    GURL url(*url_str);
-+    if (!url.is_valid()) {
-+      continue;
-+    }
-+
-+    const base::ListValue empty_path;
-+    const bookmarks::BookmarkNode* target = resolve_folder(
-+        root_for(root_name ? *root_name : kRootOther),
-+        path ? *path : empty_path);
-+
-+    // Dedupe within the target folder only, so the same url can legitimately
-+    // exist in different folders.
-+    bool already_present = false;
-+    for (const auto& child : target->children()) {
-+      if (child->is_url() && child->url() == url) {
-+        already_present = true;
-+        break;
-+      }
-+    }
-+    if (already_present) {
-+      continue;
-+    }
-+
-+    bookmark_model_->AddURL(target, target->children().size(),
-+                            base::UTF8ToUTF16(title ? *title : *url_str), url);
 +  }
++
++  for (const auto& child : current->children()) {
++    if (child->is_url() && child->url() == url) {
++      return child.get();
++    }
++  }
++  return nullptr;
++}
++
++bool HeliumSyncService::MaterializeBookmark(const base::DictValue& item) {
++  if (!bookmark_model_ || !bookmark_model_->loaded()) {
++    return false;
++  }
++  const std::string* url_str = item.FindString("url");
++  const std::string* title = item.FindString("title");
++  const std::string* root_name = item.FindString("root");
++  const base::ListValue* path = item.FindList("path");
++  if (!url_str) {
++    return false;
++  }
++  GURL url(*url_str);
++  if (!url.is_valid()) {
++    return false;
++  }
++
++  const bookmarks::BookmarkNode* current = bookmark_model_->other_node();
++  if (root_name && *root_name == kRootBar) {
++    current = bookmark_model_->bookmark_bar_node();
++  } else if (root_name && *root_name == kRootMobile) {
++    current = bookmark_model_->mobile_node();
++  }
++
++  const bool prev = applying_remote_;
++  applying_remote_ = true;
++
++  if (path) {
++    for (const base::Value& segment : *path) {
++      if (!segment.is_string()) {
++        continue;
++      }
++      std::u16string folder_title = base::UTF8ToUTF16(segment.GetString());
++      const bookmarks::BookmarkNode* next = nullptr;
++      for (const auto& child : current->children()) {
++        if (child->is_folder() && child->GetTitle() == folder_title) {
++          next = child.get();
++          break;
++        }
++      }
++      if (!next) {
++        next = bookmark_model_->AddFolder(current, current->children().size(),
++                                          folder_title);
++      }
++      current = next;
++    }
++  }
++
++  // Dedupe within the target folder so the same url can live in other folders.
++  for (const auto& child : current->children()) {
++    if (child->is_url() && child->url() == url) {
++      applying_remote_ = prev;
++      return false;
++    }
++  }
++
++  bookmark_model_->AddURL(current, current->children().size(),
++                          base::UTF8ToUTF16(title ? *title : *url_str), url);
++  applying_remote_ = prev;
++  return true;
++}
++
++void HeliumSyncService::TrashBookmark(const base::DictValue& item) {
++  const bookmarks::BookmarkNode* node = FindBookmarkLeaf(item);
++  if (!node) {
++    return;  // already gone locally; nothing to trash
++  }
++
++  base::DictValue entry = item.Clone();
++  entry.Set(kDeletedAtKey, base::Time::Now().InSecondsFSinceUnixEpoch());
++  {
++    ScopedListPrefUpdate update(prefs_, prefs::kHeliumSyncBookmarkTrash);
++    update->Append(std::move(entry));
++  }
++
++  bookmark_model_->Remove(node, bookmarks::metrics::BookmarkEditSource::kOther,
++                          FROM_HERE);
++}
++
++base::ListValue HeliumSyncService::GetTrashItems() const {
++  return prefs_->GetList(prefs::kHeliumSyncBookmarkTrash).Clone();
++}
++
++void HeliumSyncService::RestoreTrashItem(int index) {
++  const base::ListValue& trash =
++      prefs_->GetList(prefs::kHeliumSyncBookmarkTrash);
++  if (index < 0 || static_cast<size_t>(index) >= trash.size()) {
++    return;
++  }
++  const base::Value& entry = trash[index];
++  if (entry.is_dict()) {
++    MaterializeBookmark(entry.GetDict());
++  }
++  {
++    ScopedListPrefUpdate update(prefs_, prefs::kHeliumSyncBookmarkTrash);
++    update->erase(update->begin() + index);
++  }
++  // The re-added bookmark is a fresh local add; the next sync clears the server
++  // tombstone so it comes back on every device.
++  ScheduleSync();
++}
++
++void HeliumSyncService::DeleteTrashItem(int index) {
++  ScopedListPrefUpdate update(prefs_, prefs::kHeliumSyncBookmarkTrash);
++  if (index < 0 || static_cast<size_t>(index) >= update->size()) {
++    return;
++  }
++  update->erase(update->begin() + index);
++}
++
++void HeliumSyncService::EmptyTrash() {
++  prefs_->SetList(prefs::kHeliumSyncBookmarkTrash, base::ListValue());
 +}
 +
 +void HeliumSyncService::SetStatus(Status status) {

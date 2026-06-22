@@ -1,6 +1,6 @@
 --- a/components/helium_services/pref_names.h
 +++ b/components/helium_services/pref_names.h
-@@ -41,6 +41,37 @@
+@@ -41,6 +41,54 @@
  
  inline constexpr char kHeliumUBlockAssetsEnabled[] =
      "helium.services.ublock_assets";
@@ -35,12 +35,29 @@
 +
 +inline constexpr char kHeliumSyncLastTime[] =
 +    "helium.services.sync_last_time";
++
++// Tombstone-sync bookkeeping. The baselines are this device's snapshot of what
++// it knew at the last successful sync (key->item dicts), so the engine can tell
++// a local deletion ("was in baseline, gone now") apart from "never had it" and
++// only ever enacts a remote deletion for an item it actually still holds. If a
++// baseline is empty/corrupt the diff degrades to additive-only, never deleting.
++// `kHeliumSyncBookmarkTrash` is the recoverable bin: bookmarks removed because
++// they were deleted on another device land here (never re-synced) until the
++// user restores or purges them.
++inline constexpr char kHeliumSyncBookmarkBaseline[] =
++    "helium.services.sync_bookmark_baseline";
++
++inline constexpr char kHeliumSyncExtensionBaseline[] =
++    "helium.services.sync_extension_baseline";
++
++inline constexpr char kHeliumSyncBookmarkTrash[] =
++    "helium.services.sync_bookmark_trash";
  }  // namespace prefs
  
  #endif  // COMPONENTS_HELIUM_SERVICES_PREF_NAMES_H_
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -252,6 +252,14 @@
+@@ -252,6 +252,17 @@
      registry->RegisterBooleanPref(prefs::kHeliumServicesConsented, false);
      registry->RegisterBooleanPref(prefs::kHeliumUpdateFetchingEnabled, true);
      registry->RegisterBooleanPref(prefs::kHeliumUBlockAssetsEnabled, true);
@@ -52,6 +69,9 @@
 +    registry->RegisterIntegerPref(prefs::kHeliumSyncBookmarksVersion, 0);
 +    registry->RegisterIntegerPref(prefs::kHeliumSyncLastStatus, 0);
 +    registry->RegisterDoublePref(prefs::kHeliumSyncLastTime, 0);
++    registry->RegisterDictionaryPref(prefs::kHeliumSyncBookmarkBaseline);
++    registry->RegisterDictionaryPref(prefs::kHeliumSyncExtensionBaseline);
++    registry->RegisterListPref(prefs::kHeliumSyncBookmarkTrash);
    }
  
    registry->RegisterBooleanPref(
