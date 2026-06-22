@@ -1,86 +1,76 @@
 <div align="center">
     <img src="resources/branding/app_icon/raw.png"
-        title="Helium" alt="Helium logo" width="120" />
-    <h1>Helium</h1>
+        title="Helium Reimplemented" alt="Helium Reimplemented logo" width="120" />
+    <h1>Helium Reimplemented</h1>
     <p>
-        The Chromium-based web browser made for people, with love.
-        <br>
-        Privacy-first with unbiased ad-blocking. No bloat and no noise.
+        A personal fork of <a href="https://github.com/imputnet/helium">Helium</a>
+        that reimplements features cut from upstream and adds self-hosted
+        cross-device sync.
     </p>
-    <a href="https://helium.computer/">
-        helium.computer
-    </a>
 </div>
 
-## Downloads
-> [!NOTE]
-> Helium is currently in beta, so unexpected issues may occur.
-> Please report them if they haven't already been reported.
+## What this is
 
-The easiest way to download Helium is [helium.computer](https://helium.computer/).
-It'll pick a compatible binary for your platform automatically.
+This is the **core** repo: a cross-platform patch set applied on top of
+Chromium. Platform packaging and builds live in the thin platform repos
+(`helium-windows`, `helium-macos`, `helium-linux`), which pull this core,
+download the Chromium source, and apply these patches. Builds target all three
+desktop platforms.
 
-The same releases can also be downloaded from source on GitHub:
+The Chromium version is pinned in
+[`chromium_version.txt`](chromium_version.txt).
 
-- [Latest macOS release](https://github.com/imputnet/helium-macos/releases/latest)
-- [Latest Linux release](https://github.com/imputnet/helium-linux/releases/latest)
-- [Latest Windows release](https://github.com/imputnet/helium-windows/releases/latest)
+## Features
 
-## Helium repos
-All Helium packaging, tooling, services, and components are open source
-and published on GitHub.
+On top of everything inherited from Helium, this fork adds:
 
-### Platform packaging and tooling
-- [Helium for macOS](https://github.com/imputnet/helium-macos)
-- [Helium for Linux](https://github.com/imputnet/helium-linux)
-- [Helium for Windows](https://github.com/imputnet/helium-windows)
+- **Zoom bubble** — the page-zoom popup (percentage + reset button) on
+  <kbd>Ctrl</kbd> <kbd>+</kbd>/<kbd>−</kbd> and <kbd>Ctrl</kbd>+scroll, which
+  upstream removed.
+- **Self-hosted sync** — cross-device sync of the extension list and bookmarks
+  through your own
+  [services](https://github.com/keetsta/helium-reimplemented-services) instance.
+  Bookmarks use a tombstone model so deletions propagate safely; bookmarks
+  removed on another device land in a recoverable trash bin. Extensions are
+  listed for you to install, never installed automatically.
+- **Send tab to device** — push an open tab to another of your devices through
+  the same self-hosted instance.
+- **Import from Helium** — onboarding can import history, bookmarks, and the
+  extension list from a stock Helium install.
 
-### Web services and Helium components
-- [Helium services](https://github.com/imputnet/helium-services)
-- [Helium onboarding](https://github.com/imputnet/helium-onboarding)
-- [Helium fork of uBlock Origin](https://github.com/imputnet/uBlock)
+The browser identifies itself as "Helium Reimplemented", with its own profile
+directory and install identifiers, so it can run alongside stock Helium.
 
-## Development
-macOS is our primary development platform, so it's the recommended
-development environment for community contributions.
+## Building
 
-Linux packaging includes a similar development script, so the same guide
-can be applied there too.
+Builds are driven from the platform repos, not from here. Pick a platform and
+follow its build script:
 
-[> See development docs in macOS repo](https://github.com/imputnet/helium-macos/blob/main/docs/building.md#development-build-and-environment)
+- [helium-windows](https://github.com/keetsta/helium-windows)
+- [helium-macos](https://github.com/imputnet/helium-macos)
+- [helium-linux](https://github.com/imputnet/helium-linux)
 
-## Contributing
-Before contributing to Helium, please read the guidelines in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Patches are plain diff text applied with `quilt` (or by the platform build
+script). They live under [`patches/`](patches/), sorted by vendor.
+
+## License
+
+Code, patches, and modified portions unique to this project (and to upstream
+Helium) are licensed under GPL-3.0. See [LICENSE](LICENSE).
+
+Content imported from other projects retains its original license — for
+example, unmodified code from
+[ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium)
+remains under its
+[BSD 3-Clause license](LICENSE.ungoogled_chromium).
 
 ## Credits
 
-### The Chromium project
-[The Chromium Project](https://www.chromium.org/) is at the core of Helium,
-making it possible in the first place.
-
-### ungoogled-chromium
-This repo is based on [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium),
-but heavily modified for Helium. Special thanks to everyone behind ungoogled-chromium,
-they made working with Chromium way easier.
-
-### Other Chromium browsers
-
-Helium includes some patches from other open source Chromium browsers:
-
-- [Inox patchset](https://github.com/gcarq/inox-patchset)
-- [Debian](https://tracker.debian.org/pkg/chromium-browser)
-- [Bromite](https://github.com/bromite/bromite)
-- [Iridium Browser](https://iridiumbrowser.de/)
-- [Brave](https://github.com/brave/brave-core)
-
-All patches are sorted by vendor in the [patches](patches/) directory of this repo.
-
-## License
-All code, patches, modified portions of imported code or patches, and
-any other content that is unique to Helium and not imported from other
-repositories is licensed under GPL-3.0. See [LICENSE](LICENSE).
-
-Any content imported from other projects retains its original license (for
-example, any original unmodified code imported from ungoogled-chromium remains
-licensed under their [BSD 3-Clause license](LICENSE.ungoogled_chromium)).
+Built on [Helium](https://github.com/imputnet/helium),
+[ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium),
+and [the Chromium project](https://www.chromium.org/). Patches are also drawn
+from [Brave](https://github.com/brave/brave-core),
+[Inox](https://github.com/gcarq/inox-patchset),
+[Bromite](https://github.com/bromite/bromite),
+[Iridium](https://iridiumbrowser.de/), and
+[Debian](https://tracker.debian.org/pkg/chromium-browser).
