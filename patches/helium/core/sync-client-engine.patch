@@ -383,10 +383,10 @@
 +
 +  // Pull from the server on startup and periodically thereafter, so changes
 +  // made on other devices arrive without requiring a local edit or a manual
-+  // "Sync now". Gated by ShouldSync inside the timer callback.
-+  if (helium::ShouldSync(*prefs_)) {
-+    StartPeriodicSync();
-+  }
++  // "Sync now". Started unconditionally; OnPeriodicSyncTimer re-checks
++  // ShouldSync each tick and re-arms, so it self-activates when sync is
++  // enabled later even if it was off/unreadable at construction time.
++  StartPeriodicSync();
 +}
 +
 +HeliumSyncService::~HeliumSyncService() = default;
