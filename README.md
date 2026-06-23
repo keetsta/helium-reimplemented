@@ -46,9 +46,9 @@ directory and install identifiers, so it can run alongside stock Helium.
 Builds are driven from the platform repos, not from here. Pick a platform and
 follow its build script:
 
-- [helium-windows](https://github.com/keetsta/helium-windows)
-- [helium-macos](https://github.com/imputnet/helium-macos)
-- [helium-linux](https://github.com/imputnet/helium-linux)
+- [helium-windows](https://github.com/keetsta/helium-reimplemented-windows)
+- [helium-macos](https://github.com/keetsta/helium-reimplemented-macos)
+- [helium-linux](https://github.com/keetsta/helium-reimplemented-linux)
 
 Patches are plain diff text applied with `quilt` (or by the platform build
 script). They live under [`patches/`](patches/), sorted by vendor.
