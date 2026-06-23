@@ -822,7 +822,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 +
 +base::FilePath GetHeliumUserDataFolder() {
 +  base::FilePath result = base::apple::GetUserLibraryPath();
-+  return result.Append("Application Support").Append("Helium");
++  return result.Append("Application Support").Append("net.imput.helium");
 +}
 --- /dev/null
 +++ b/chrome/common/importer/chrome_importer_utils_win.cc
