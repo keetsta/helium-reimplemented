@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/components/helium_sync/helium_sync_service.h
-@@ -0,0 +1,214 @@
+@@ -0,0 +1,223 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -182,6 +182,11 @@
 +  void SetStatus(Status status);
 +  void OnSyncPrefChanged();
 +  void ScheduleSync();  // debounced trigger from observers
++  // Periodic background pull so a device picks up changes made elsewhere even
++  // when nothing changes locally. Re-armed after every run while sync is on.
++  void StartPeriodicSync();
++  void StopPeriodicSync();
++  void OnPeriodicSyncTimer();
 +
 +  int VersionPrefFor(const std::string& collection) const;
 +  void StoreVersionFor(const std::string& collection, int version);
@@ -201,6 +206,10 @@
 +                          extensions::ExtensionRegistryObserver>
 +      extension_observation_{this};
 +  base::OneShotTimer debounce_timer_;
++  // Fires periodic background pulls (see StartPeriodicSync). One-shot and
++  // self-rescheduling so the first tick can use a shorter startup delay than
++  // the steady cadence.
++  base::OneShotTimer poll_timer_;
 +
 +  std::vector<std::string> missing_extensions_;
 +  Status last_status_ = Status::kIdle;
@@ -217,7 +226,7 @@
 +#endif  // COMPONENTS_HELIUM_SYNC_HELIUM_SYNC_SERVICE_H_
 --- /dev/null
 +++ b/components/helium_sync/helium_sync_service.cc
-@@ -0,0 +1,863 @@
+@@ -0,0 +1,905 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -267,6 +276,14 @@
 +// Debounce window for live (observer-driven) syncs, so a bulk operation such as
 +// an import coalesces into a single sync rather than hammering the server.
 +constexpr int kDebounceSeconds = 4;
++
++// Interval for the background pull, so a device picks up changes made on another
++// device even when nothing changes locally (the observers only fire on local
++// edits). Also runs shortly after startup via the first timer tick.
++constexpr int kPeriodicSyncSeconds = 5 * 60;
++// Initial pull after startup, kept short so a freshly opened browser converges
++// quickly without waiting a full period.
++constexpr int kStartupSyncSeconds = 10;
 +
 +// Identifies which permanent folder a bookmark lives under, so it can be
 +// restored to the same root on another device.
@@ -363,12 +380,20 @@
 +  if (extension_registry_) {
 +    extension_observation_.Observe(extension_registry_);
 +  }
++
++  // Pull from the server on startup and periodically thereafter, so changes
++  // made on other devices arrive without requiring a local edit or a manual
++  // "Sync now". Gated by ShouldSync inside the timer callback.
++  if (helium::ShouldSync(*prefs_)) {
++    StartPeriodicSync();
++  }
 +}
 +
 +HeliumSyncService::~HeliumSyncService() = default;
 +
 +void HeliumSyncService::Shutdown() {
 +  debounce_timer_.Stop();
++  poll_timer_.Stop();
 +  bookmark_observation_.Reset();
 +  extension_observation_.Reset();
 +  pref_change_registrar_.RemoveAll();
@@ -377,7 +402,33 @@
 +void HeliumSyncService::OnSyncPrefChanged() {
 +  if (helium::ShouldSync(*prefs_)) {
 +    SyncNow();
++    StartPeriodicSync();
++  } else {
++    StopPeriodicSync();
 +  }
++}
++
++void HeliumSyncService::StartPeriodicSync() {
++  // Kick a near-term pull (covers the startup case), then settle into the
++  // periodic cadence. Re-arming happens in OnPeriodicSyncTimer.
++  poll_timer_.Start(FROM_HERE, base::Seconds(kStartupSyncSeconds),
++                    base::BindOnce(&HeliumSyncService::OnPeriodicSyncTimer,
++                                   weak_factory_.GetWeakPtr()));
++}
++
++void HeliumSyncService::StopPeriodicSync() {
++  poll_timer_.Stop();
++}
++
++void HeliumSyncService::OnPeriodicSyncTimer() {
++  if (helium::ShouldSync(*prefs_)) {
++    SyncNow();
++  }
++  // Re-arm at the steady cadence regardless; ShouldSync is re-checked each tick
++  // so a later enable/disable is honored without needing a pref-change event.
++  poll_timer_.Start(FROM_HERE, base::Seconds(kPeriodicSyncSeconds),
++                    base::BindOnce(&HeliumSyncService::OnPeriodicSyncTimer,
++                                   weak_factory_.GetWeakPtr()));
 +}
 +
 +void HeliumSyncService::ScheduleSync() {

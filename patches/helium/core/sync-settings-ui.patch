@@ -175,7 +175,53 @@
          IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION},
 --- a/chrome/browser/resources/settings/privacy_page/services_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/services_page.html
-@@ -109,6 +109,112 @@
+@@ -1,4 +1,4 @@
+-<style include="cr-shared-style settings-shared">
++<style include="cr-shared-style settings-shared md-select">
+     .label-wrapper {
+         padding: var(--cr-section-vertical-padding) 0;
+     }
+@@ -37,6 +37,39 @@
+         padding: calc(var(--cr-section-padding) / 2) var(--cr-section-padding);
+         justify-content: space-between;
+     }
++
++    /* Rows inside the sync/send-tab collapses: match the horizontal padding of
++       the toggle buttons above them so nothing sits flush against the divider. */
++    #syncCollapse .cr-row,
++    #sendTabCollapse .cr-row {
++        padding-inline: var(--cr-section-padding);
++    }
++
++    /* Token row: let the input grow and keep the Generate button beside it with
++       a consistent gap, instead of three items crammed together. */
++    .token-row .flex {
++        display: flex;
++        align-items: center;
++        gap: 12px;
++    }
++
++    .token-row cr-input {
++        flex: 1;
++        min-width: 0;
++    }
++
++    .token-row .label-wrapper {
++        flex: none;
++        max-width: 40%;
++    }
++
++    /* Status row: space the secondary text from the action button(s). */
++    .sync-actions {
++        display: flex;
++        align-items: center;
++        gap: 8px;
++        margin-inline-start: 16px;
++    }
+ </style>
+ 
+ <settings-subpage page-title="$i18n{heliumServicesTitle}" route-path$="[[routePath]]">
+@@ -109,6 +142,155 @@
                  label="$i18n{heliumUboToggle}"
                  sub-label="$i18n{heliumUboToggleDescription}">
              </settings-toggle-button>
@@ -195,7 +241,7 @@
 +                        pref="{{prefs.helium.services.sync_bookmarks}}"
 +                        label="$i18n{heliumSyncBookmarksToggle}">
 +                    </settings-toggle-button>
-+                    <div class="cr-row">
++                    <div class="cr-row token-row">
 +                      <div class="flex">
 +                        <div class="flex label-wrapper">
 +                            <div class="label">$i18n{heliumSyncToken}</div>
@@ -236,14 +282,12 @@
 +                        <div class="cr-secondary-text"
 +                            id="syncStatusText">[[syncStatusText_]]</div>
 +                      </div>
-+                      <cr-button id="resetServerDataButton"
-+                          on-click="onResetServerDataClick_">
-+                          $i18n{heliumSyncReset}
-+                      </cr-button>
-+                      <cr-button id="syncNowButton"
-+                          on-click="onSyncNowClick_">
-+                          $i18n{heliumSyncNow}
-+                      </cr-button>
++                      <div class="sync-actions">
++                        <cr-button id="syncNowButton"
++                            on-click="onSyncNowClick_">
++                            $i18n{heliumSyncNow}
++                        </cr-button>
++                      </div>
 +                    </div>
 +                    <cr-toast id="syncTokenCopiedToast" duration="3000">
 +                        <div>$i18n{heliumSyncTokenCopied}</div>
@@ -285,12 +329,57 @@
 +                    </template>
 +                </cr-collapse>
 +            </div>
++            <settings-toggle-button id="sendTabToggleButton"
++                pref="{{prefs.helium.services.sendtab}}"
++                label="$i18n{heliumSendTabToggle}"
++                sub-label="$i18n{heliumSendTabToggleDescription}">
++            </settings-toggle-button>
++            <div class="cr-col">
++                <cr-collapse id="sendTabCollapse"
++                    opened="[[prefs.helium.services.sendtab.value]]">
++                    <div class="cr-row">
++                      <div class="flex">
++                        <div class="flex label-wrapper">
++                            <div class="label">$i18n{heliumSendTabDeviceName}</div>
++                            <div class="cr-secondary-text label">
++                                $i18n{heliumSendTabDeviceNameDescription}
++                            </div>
++                        </div>
++                        <cr-input
++                            id="heliumSendTabDeviceName"
++                            value="[[prefs.helium.services.sendtab_device_name.value]]"
++                            on-change="onSendTabDeviceNameChange_"
++                            maxlength="64"
++                            aria-label="$i18n{heliumSendTabDeviceName}"
++                            spellcheck="false">
++                        </cr-input>
++                      </div>
++                    </div>
++                    <div class="cr-row">
++                      <div class="flex">
++                        <div class="flex label-wrapper">
++                            <div class="label">$i18n{heliumSendTabReceiveMode}</div>
++                            <div class="cr-secondary-text label">
++                                $i18n{heliumSendTabReceiveModeDescription}
++                            </div>
++                        </div>
++                        <select class="md-select"
++                            value="[[prefs.helium.services.sendtab_receive_mode.value]]"
++                            on-change="onSendTabReceiveModeChange_"
++                            aria-label="$i18n{heliumSendTabReceiveMode}">
++                            <option value="0">$i18n{heliumSendTabReceiveNotify}</option>
++                            <option value="1">$i18n{heliumSendTabReceiveOpen}</option>
++                        </select>
++                      </div>
++                    </div>
++                </cr-collapse>
++            </div>
          </cr-collapse>
      </div>
      </template>
 --- a/chrome/browser/resources/settings/privacy_page/services_page.ts
 +++ b/chrome/browser/resources/settings/privacy_page/services_page.ts
-@@ -8,18 +8,37 @@ import 'chrome://resources/cr_elements/cr_button/cr_button.js';
+@@ -8,18 +8,37 @@
  import 'chrome://resources/cr_elements/cr_checkbox/cr_checkbox.js';
  import 'chrome://resources/cr_elements/cr_collapse/cr_collapse.js';
  import 'chrome://resources/cr_elements/cr_icon/cr_icon.js';
@@ -328,7 +417,7 @@
  const SettingsHeliumServicesPageElementBase =
      HelpBubbleMixin(I18nMixin(PrefsMixin(PolymerElement)));
  
-@@ -40,11 +59,123 @@ export class SettingsHeliumServicesPageElement extends
+@@ -40,11 +59,114 @@
      return {
        ignoreChecked_: Boolean,
        changes_: Array,
@@ -440,19 +529,10 @@
 +    // Poll once shortly after to reflect the result.
 +    setTimeout(() => this.refreshSyncStatus_(), 1500);
 +  }
-+
-+  private onResetServerDataClick_() {
-+    if (!confirm(this.i18n('heliumSyncResetConfirm'))) {
-+      return;
-+    }
-+    chrome.send('heliumResetServerData');
-+    this.syncStatusText_ = this.i18n('heliumSyncStatusSyncing');
-+    setTimeout(() => this.refreshSyncStatus_(), 1500);
-+  }
  
    private toOrigin(thing: string) {
      try {
-@@ -68,11 +199,6 @@ export class SettingsHeliumServicesPageElement extends
+@@ -68,11 +190,6 @@
      this.requestChangelog();
    }
  
@@ -464,9 +544,9 @@
    protected onOriginOverrideKeydown_(event: KeyboardEvent) {
      const target = event.target as CrInputElement;
  
-@@ -94,6 +220,51 @@ export class SettingsHeliumServicesPageElement extends
- 
-     this.setPrefValue('helium.services.origin_override', target.value);
+@@ -98,6 +215,62 @@
+   private onServicesPendingButtonClick_() {
+     window.open('chrome://setup', '_blank');
    }
 +
 +  private onSyncTokenChange_(event: Event) {
@@ -475,6 +555,17 @@
 +      return;
 +    }
 +    this.setPrefValue('helium.services.sync_token', target.value);
++  }
++
++  private onSendTabDeviceNameChange_(event: Event) {
++    const target = event.target as CrInputElement;
++    this.setPrefValue('helium.services.sendtab_device_name', target.value);
++  }
++
++  private onSendTabReceiveModeChange_(event: Event) {
++    const target = event.target as HTMLSelectElement;
++    this.setPrefValue(
++        'helium.services.sendtab_receive_mode', Number(target.value));
 +  }
 +
 +  private onGenerateSyncTokenClick_() {
