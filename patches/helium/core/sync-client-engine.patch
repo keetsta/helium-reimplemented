@@ -226,7 +226,7 @@
 +#endif  // COMPONENTS_HELIUM_SYNC_HELIUM_SYNC_SERVICE_H_
 --- /dev/null
 +++ b/components/helium_sync/helium_sync_service.cc
-@@ -0,0 +1,905 @@
+@@ -0,0 +1,918 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -805,8 +805,21 @@
 +    }
 +  }
 +
++  // Remote-add extensions surfaced as "missing" are pushed back live so the
++  // server keeps them, but they are NOT installed on this device. Recording
++  // them as live in our baseline would make the next sync read their local
++  // absence as a deletion and tombstone them, poisoning the server for every
++  // device. Keep them out of the baseline so each sync re-surfaces them as
++  // missing instead of falsely deleting them.
++  base::DictValue baseline_items = out_items.Clone();
++  if (collection == kExtensionsCollection) {
++    for (const std::string& key : missing_extensions_) {
++      baseline_items.Remove(key);
++    }
++  }
++
 +  base::DictValue baseline;
-+  baseline.Set(kItemsKey, out_items.Clone());
++  baseline.Set(kItemsKey, std::move(baseline_items));
 +  baseline.Set(kTombstonesKey, out_tombstones.Clone());
 +  *out_new_baseline = std::move(baseline);
 +
