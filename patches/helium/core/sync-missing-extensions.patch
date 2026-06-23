@@ -94,8 +94,8 @@
      });
    }
  
-+  private hasMissingExtensions_(missing: string[]): boolean {
-+    return !!missing && missing.length > 0;
++  private hasMissingExtensions_(): boolean {
++    return this.missingExtensions_.length > 0;
 +  }
 +
 +  private webStoreUrl_(id: string): string {
