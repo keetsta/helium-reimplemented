@@ -169,6 +169,7 @@ helium/core/sync-settings-ui.patch
 helium/core/sendtab-engine.patch
 helium/core/sendtab-context-menu.patch
 helium/core/sendtab-settings.patch
+helium/core/sync-missing-extensions.patch
 helium/core/clean-omnibox-suggestions.patch
 helium/core/increase-incognito-storage-quota.patch
 
@@ -313,6 +314,7 @@ helium/ui/layout/toolbar-actions.patch
 helium/ui/layout/zen-mode-wiring.patch
 helium/ui/layout/zen-caption-buttons.patch
 helium/ui/layout/zen-mode.patch
+helium/core/sendtab-toast.patch
 
 helium/ui/generate-standard-qr-codes.patch
 helium/ui/pdf-viewer.patch

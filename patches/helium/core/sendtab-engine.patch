@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/chrome/browser/helium_sendtab/helium_sendtab_service.h
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,146 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -36,16 +36,17 @@
 +// Delivery is near-instant via long-poll, with no push server or WebSocket:
 +//   - Each device has an inbox at {origin}/sync/sendtab/<deviceId>. Sending a
 +//     tab POSTs it there; the server appends it and bumps a sequence number.
-+//   - To receive, the device holds a long-poll GET open against its own inbox
-+//     (?after=<lastSeq>). The server (via Deno kv.watch) replies the instant a
-+//     tab is enqueued, or with 204 after a timeout, at which point we re-poll.
++//   - To receive, the device holds a long-poll GET open against its own inbox.
++//     The server (via Deno kv.watch) replies the instant a tab is enqueued, or
++//     with 204 after a timeout, at which point we re-poll. The GET drains the
++//     inbox server-side, so each tab is delivered exactly once.
 +//   - A separate device registry blob at {origin}/sync/tabs lets devices learn
 +//     each other's names; it is refreshed on a slow timer.
 +//
 +// Safety: an incoming tab is never opened silently unless the user chose
-+// auto-open (kHeliumSendTabReceiveMode); otherwise it shows a notification that
-+// opens the tab on click. The persisted inbox sequence guarantees a tab is
-+// delivered at most once, even across restarts.
++// auto-open (kHeliumSendTabReceiveMode). Otherwise it surfaces an in-window
++// toast (falling back to an OS notification when no browser window is open)
++// whose action opens the tab.
 +class HeliumSendTabService : public KeyedService {
 + public:
 +  struct Device {
@@ -68,6 +69,10 @@
 +  void SendTab(const std::string& device_id,
 +               const GURL& url,
 +               const std::u16string& title);
++
++  // Opens the most recently received tab. Invoked by the in-window toast's
++  // action button (which can't carry the url itself).
++  void OpenLastReceivedTab();
 +
 +  // KeyedService:
 +  void Shutdown() override;
@@ -100,6 +105,13 @@
 +  void DeliverTab(const std::string& from_name,
 +                  const GURL& url,
 +                  const std::u16string& title);
++  // Shows an in-window toast for a received tab. Returns false if there is no
++  // browser window to host it (caller then falls back to an OS notification).
++  bool ShowReceivedTabToast(const std::string& from_name);
++  // Shows an OS notification whose click opens `url` (fallback path).
++  void ShowReceivedTabNotification(const std::string& from_name,
++                                   const GURL& url,
++                                   const std::u16string& title);
 +  void OpenTab(const GURL& url);
 +
 +  std::string DeviceId();    // ours; lazily generated + persisted
@@ -125,6 +137,10 @@
 +  bool running_ = false;
 +  bool inbox_in_flight_ = false;
 +
++  // The url of the most recently delivered tab, opened by the toast's action
++  // button. Cleared after opening.
++  GURL last_received_url_;
++
 +  base::WeakPtrFactory<HeliumSendTabService> weak_factory_{this};
 +};
 +
@@ -133,7 +149,7 @@
 +#endif  // CHROME_BROWSER_HELIUM_SENDTAB_HELIUM_SENDTAB_SERVICE_H_
 --- /dev/null
 +++ b/chrome/browser/helium_sendtab/helium_sendtab_service.cc
-@@ -0,0 +1,510 @@
+@@ -0,0 +1,543 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -147,15 +163,19 @@
 +#include "base/json/json_reader.h"
 +#include "base/json/json_writer.h"
 +#include "base/logging.h"
-+#include "base/strings/stringprintf.h"
 +#include "base/strings/utf_string_conversions.h"
 +#include "base/time/time.h"
 +#include "base/uuid.h"
 +#include "chrome/browser/notifications/notification_display_service.h"
 +#include "chrome/browser/notifications/notification_display_service_factory.h"
 +#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/ui/browser_finder.h"
++#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
++#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 +#include "chrome/browser/ui/navigator/browser_navigator.h"
 +#include "chrome/browser/ui/navigator/browser_navigator_params.h"
++#include "chrome/browser/ui/toasts/api/toast_id.h"
++#include "chrome/browser/ui/toasts/toast_controller.h"
 +#include "components/helium_services/helium_services_helpers.h"
 +#include "components/helium_services/pref_names.h"
 +#include "components/prefs/pref_service.h"
@@ -194,7 +214,6 @@
 +constexpr char kToKey[] = "to";
 +constexpr char kTitleKey[] = "title";
 +constexpr char kUrlKey[] = "url";
-+constexpr char kSeqKey[] = "seq";
 +constexpr char kItemsKey[] = "items";
 +
 +constexpr char kNotifierId[] = "helium.sendtab";
@@ -466,11 +485,9 @@
 +  if (!url.is_valid()) {
 +    return;
 +  }
-+  int after = prefs_->GetInteger(prefs::kHeliumSendTabInboxSeq);
-+  GURL polled = GURL(url.spec() + base::StringPrintf("?after=%d", after));
 +
 +  auto request =
-+      MakeRequest(polled, "GET", prefs_->GetString(prefs::kHeliumSyncToken));
++      MakeRequest(url, "GET", prefs_->GetString(prefs::kHeliumSyncToken));
 +  auto loader =
 +      network::SimpleURLLoader::Create(std::move(request), kSendTabTrafficTag);
 +  loader->SetTimeoutDuration(base::Seconds(kInboxTimeoutSeconds));
@@ -513,7 +530,6 @@
 +
 +  auto parsed = base::JSONReader::ReadDict(*body, base::JSON_PARSE_RFC);
 +  if (parsed) {
-+    int seq = parsed->FindInt(kSeqKey).value_or(0);
 +    const base::ListValue* items = parsed->FindList(kItemsKey);
 +    if (items) {
 +      for (const base::Value& item : *items) {
@@ -534,10 +550,6 @@
 +        DeliverTab(from_name ? *from_name : std::string(), url,
 +                   base::UTF8ToUTF16(title ? *title : std::string()));
 +      }
-+    }
-+    // Persist progress so a restart doesn't redeliver these tabs.
-+    if (seq > prefs_->GetInteger(prefs::kHeliumSendTabInboxSeq)) {
-+      prefs_->SetInteger(prefs::kHeliumSendTabInboxSeq, seq);
 +    }
 +  }
 +
@@ -606,6 +618,36 @@
 +    return;
 +  }
 +
++  // Remember the url so the toast's action button (which carries no payload)
++  // can open it. Prefer an in-window toast; if there's no window to host one,
++  // fall back to an OS notification so the tab is never silently dropped.
++  last_received_url_ = url;
++  if (!ShowReceivedTabToast(from_name)) {
++    ShowReceivedTabNotification(from_name, url, title);
++  }
++}
++
++bool HeliumSendTabService::ShowReceivedTabToast(const std::string& from_name) {
++  BrowserWindowInterface* window =
++      chrome::FindLastActiveWithProfile(profile_);
++  if (!window) {
++    return false;
++  }
++  ToastController* controller = window->GetFeatures().toast_controller();
++  if (!controller) {
++    return false;
++  }
++  ToastParams params(ToastId::kHeliumSendTabReceived);
++  // Body: "<device> sent you a tab" — device name fills the placeholder.
++  params.body_string_replacement_params.push_back(
++      from_name.empty() ? u"Another device" : base::UTF8ToUTF16(from_name));
++  return controller->MaybeShowToast(std::move(params));
++}
++
++void HeliumSendTabService::ShowReceivedTabNotification(
++    const std::string& from_name,
++    const GURL& url,
++    const std::u16string& title) {
 +  std::u16string source =
 +      from_name.empty() ? u"Helium" : base::UTF8ToUTF16(from_name);
 +  std::u16string heading = title.empty() ? base::UTF8ToUTF16(url.spec()) : title;
@@ -635,6 +677,13 @@
 +  NotificationDisplayServiceFactory::GetForProfile(profile_)->Display(
 +      NotificationHandler::Type::TRANSIENT, notification,
 +      /*metadata=*/nullptr);
++}
++
++void HeliumSendTabService::OpenLastReceivedTab() {
++  if (last_received_url_.is_valid()) {
++    OpenTab(last_received_url_);
++    last_received_url_ = GURL();
++  }
 +}
 +
 +void HeliumSendTabService::OpenTab(const GURL& url) {
@@ -774,7 +823,7 @@
 +}
 --- a/components/helium_services/pref_names.h
 +++ b/components/helium_services/pref_names.h
-@@ -89,6 +89,29 @@
+@@ -89,6 +89,24 @@
 
  inline constexpr char kHeliumSyncBookmarkTrash[] =
      "helium.services.sync_bookmark_trash";
@@ -796,17 +845,12 @@
 +
 +inline constexpr char kHeliumSendTabReceiveMode[] =
 +    "helium.services.sendtab_receive_mode";
-+
-+// Highest inbox sequence number this device has already delivered. Sent with
-+// each long-poll GET as ?after=, so the server only returns newer tabs.
-+inline constexpr char kHeliumSendTabInboxSeq[] =
-+    "helium.services.sendtab_inbox_seq";
  }  // namespace prefs
 
  #endif  // COMPONENTS_HELIUM_SERVICES_PREF_NAMES_H_
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -263,6 +263,11 @@
+@@ -263,6 +263,10 @@
      registry->RegisterDictionaryPref(prefs::kHeliumSyncBookmarkBaseline);
      registry->RegisterDictionaryPref(prefs::kHeliumSyncExtensionBaseline);
      registry->RegisterListPref(prefs::kHeliumSyncBookmarkTrash);
@@ -814,9 +858,8 @@
 +    registry->RegisterStringPref(prefs::kHeliumSendTabId, "");
 +    registry->RegisterStringPref(prefs::kHeliumSendTabName, "");
 +    registry->RegisterIntegerPref(prefs::kHeliumSendTabReceiveMode, 0);
-+    registry->RegisterIntegerPref(prefs::kHeliumSendTabInboxSeq, 0);
    }
- 
+
    registry->RegisterBooleanPref(
 --- a/components/helium_services/helium_services_helpers.cc
 +++ b/components/helium_services/helium_services_helpers.cc
