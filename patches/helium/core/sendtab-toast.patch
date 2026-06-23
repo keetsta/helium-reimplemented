@@ -69,3 +69,18 @@
      "//chrome/browser/multistep_filter/ui",
      "//chrome/browser/profiles:profile",
      "//chrome/browser/send_tab_to_self",
+--- a/chrome/app/generated_resources.grd
++++ b/chrome/app/generated_resources.grd
+@@ -19961,6 +19961,12 @@
+     <message name="IDS_REPORT_UNSAFE_SITE_CONFIRMATION_TOAST" desc="Message confirmation after unsafe-site-report sends to Google">
+       Report sent
+     </message>
++    <message name="IDS_HELIUM_SENDTAB_RECEIVED_TOAST_BODY" desc="Body text of a toast shown when a tab is received from another of the user's own devices.">
++      A tab was sent to this device
++    </message>
++    <message name="IDS_HELIUM_SENDTAB_RECEIVED_TOAST_ACTION" desc="Label of the action button on the received-tab toast; opens the most recently received tab.">
++      Open
++    </message>
+ 
+ 
+     <!-- Indigo -->
