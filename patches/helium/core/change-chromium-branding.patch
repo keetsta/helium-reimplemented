@@ -16,7 +16,7 @@
 +PRODUCT_INSTALLER_FULLNAME=Helium Reimplemented Installer
 +PRODUCT_INSTALLER_SHORTNAME=Helium Reimplemented Installer
 +COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Helium Authors. All rights reserved.
-+MAC_BUNDLE_ID=net.imput.helium
++MAC_BUNDLE_ID=net.imput.helium.reimplemented
  MAC_CREATOR_CODE=Cr24
 -MAC_TEAM_ID=
 +MAC_TEAM_ID=S4Q33XPHB4
