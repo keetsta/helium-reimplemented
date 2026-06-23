@@ -462,6 +462,24 @@
     "message": "Permanently delete all bookmarks in the trash? This cannot be undone."
   },
   {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_TITLE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Heading for the list of extensions present on other synced devices but not installed here",
+    "message": "Extensions from your other devices"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Explains that synced extensions are not installed automatically and must be added manually",
+    "message": "These extensions are installed on another of your devices. Helium never installs extensions automatically; add the ones you want."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_INSTALL",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that opens the Chrome Web Store page for a synced extension so the user can install it",
+    "message": "Install"
+  },
+  {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK",
     "source": "chrome/app/settings_strings.grdp",
     "context": "Link to the source code of the Helium services server",
@@ -501,13 +519,13 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE_DESCRIPTION",
     "source": "chrome/app/settings_strings.grdp",
     "context": "Description of the received-tab handling dropdown",
-    "message": "Choose whether an incoming tab shows a notification you click to open, or opens automatically."
+    "message": "Choose whether an incoming tab shows a prompt you click to open, or opens automatically."
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY",
     "source": "chrome/app/settings_strings.grdp",
-    "context": "Dropdown option: show a notification for an incoming tab",
-    "message": "Show a notification"
+    "context": "Dropdown option: show a prompt for an incoming tab that the user clicks to open",
+    "message": "Let me click to open"
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_OPEN",
@@ -544,6 +562,18 @@
     "source": "chrome/app/generated_resources.grd",
     "context": "The label of the tab context menu submenu for sending the tab to another of the user's devices.",
     "message": "Send tab to my devices"
+  },
+  {
+    "name": "IDS_HELIUM_SENDTAB_RECEIVED_TOAST_BODY",
+    "source": "chrome/app/generated_resources.grd",
+    "context": "Body of the in-window toast shown when another of the user's devices sends a tab to this device. The placeholder is the name of the sending device.",
+    "message": "<ph name=\"DEVICE_NAME\">$1<ex>Laptop</ex></ph> sent you a tab"
+  },
+  {
+    "name": "IDS_HELIUM_SENDTAB_RECEIVED_TOAST_ACTION",
+    "source": "chrome/app/generated_resources.grd",
+    "context": "Label of the action button on the received-tab toast that opens the sent tab.",
+    "message": "Open"
   },
   {
     "name": "IDS_TAB_CXMENU_HIBERNATE_OTHER_TABS",

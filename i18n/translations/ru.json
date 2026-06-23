@@ -941,17 +941,42 @@
  },
  {
   "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE_DESCRIPTION",
-  "source": "Choose whether an incoming tab shows a notification you click to open, or opens automatically.",
-  "message": "Выберите, показывать ли уведомление, по нажатию на которое вкладка откроется, или открывать её сразу."
+  "source": "Choose whether an incoming tab shows a prompt you click to open, or opens automatically.",
+  "message": "Выберите, показывать ли подсказку, по нажатию на которую вкладка откроется, или открывать её сразу."
  },
  {
   "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY",
-  "source": "Show a notification",
-  "message": "Показать уведомление"
+  "source": "Let me click to open",
+  "message": "Открывать по нажатию"
  },
  {
   "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_OPEN",
   "source": "Open automatically",
   "message": "Открывать автоматически"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_TITLE",
+  "source": "Extensions from your other devices",
+  "message": "Расширения с других ваших устройств"
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_DESCRIPTION",
+  "source": "These extensions are installed on another of your devices. Helium never installs extensions automatically; add the ones you want.",
+  "message": "Эти расширения установлены на другом вашем устройстве. Helium никогда не устанавливает расширения автоматически — добавьте нужные сами."
+ },
+ {
+  "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_INSTALL",
+  "source": "Install",
+  "message": "Установить"
+ },
+ {
+  "name": "IDS_HELIUM_SENDTAB_RECEIVED_TOAST_BODY",
+  "source": "<ph name=\"DEVICE_NAME\">$1<ex>Laptop</ex></ph> sent you a tab",
+  "message": "<ph name=\"DEVICE_NAME\">$1<ex>Laptop</ex></ph> отправил вам вкладку"
+ },
+ {
+  "name": "IDS_HELIUM_SENDTAB_RECEIVED_TOAST_ACTION",
+  "source": "Open",
+  "message": "Открыть"
  }
 ]
