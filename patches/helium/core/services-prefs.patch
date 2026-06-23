@@ -30,7 +30,7 @@
 +      Use your own instance of Helium services
 +    </message>
 +    <message name="IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION" desc="Description of the text input for overriding the Helium services server">
-+      You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.
++      You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only. This fork's extra features, such as extension and bookmark sync, require a fork of Helium services (see below) and will not work against the official Helium server.
 +    </message>
 +    <message name="IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING" desc="Warning section of description for overriding the Helium services server">
 +      Do not use this field unless you know exactly what you are doing. Never paste URLs from other people here, they are trying to steal your data. We are not responsible for any damages caused by using a custom server and will not be able to help you.
