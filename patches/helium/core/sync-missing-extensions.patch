@@ -1,0 +1,107 @@
+--- a/chrome/app/settings_strings.grdp
++++ b/chrome/app/settings_strings.grdp
+@@ -1919,6 +1919,15 @@
+     <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM" desc="Confirmation prompt before permanently emptying the bookmark trash bin">
+       Permanently delete all bookmarks in the trash? This cannot be undone.
+     </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_TITLE" desc="Heading for the list of extensions present on other synced devices but not installed here">
++      Extensions from your other devices
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_DESCRIPTION" desc="Explains that synced extensions are not installed automatically and must be added manually">
++      These extensions are installed on another of your devices. Helium never installs extensions automatically; add the ones you want.
++    </message>
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_INSTALL" desc="Button that opens the Chrome Web Store page for a synced extension so the user can install it">
++      Install
++    </message>
+     <message name="IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK" desc="Link to the source code of the Helium services server">
+       View the Helium Reimplemented services source code
+     </message>
+--- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
++++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
+@@ -2336,6 +2336,12 @@
+         IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY},
+       {"heliumSyncTrashEmptyConfirm",
+         IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM},
++      {"heliumSyncMissingExtensionsTitle",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_TITLE},
++      {"heliumSyncMissingExtensionsDescription",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_DESCRIPTION},
++      {"heliumSyncMissingExtensionsInstall",
++        IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_INSTALL},
+       {"heliumServicesRepoLink", IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK},
+       {"heliumSendTabToggle", IDS_SETTINGS_HELIUM_SERVICES_SENDTAB},
+       {"heliumSendTabToggleDescription",
+--- a/chrome/browser/resources/settings/privacy_page/services_page.html
++++ b/chrome/browser/resources/settings/privacy_page/services_page.html
+@@ -213,6 +213,31 @@
+                         </div>
+                       </template>
+                     </template>
++                    <template is="dom-if"
++                        if="[[hasMissingExtensions_(missingExtensions_.*)]]">
++                      <div class="cr-row">
++                        <div class="flex label-wrapper">
++                            <div class="label">
++                                $i18n{heliumSyncMissingExtensionsTitle}
++                            </div>
++                            <div class="cr-secondary-text label">
++                                $i18n{heliumSyncMissingExtensionsDescription}
++                            </div>
++                        </div>
++                      </div>
++                      <template is="dom-repeat" items="[[missingExtensions_]]"
++                          as="extId">
++                        <div class="cr-row">
++                          <div class="flex">
++                            <div class="cr-secondary-text label">[[extId]]</div>
++                          </div>
++                          <a class="cr-button" role="button"
++                              href="[[webStoreUrl_(extId)]]" target="_blank">
++                              $i18n{heliumSyncMissingExtensionsInstall}
++                          </a>
++                        </div>
++                      </template>
++                    </template>
+                 </cr-collapse>
+             </div>
+             <settings-toggle-button id="sendTabToggleButton"
+--- a/chrome/browser/resources/settings/privacy_page/services_page.ts
++++ b/chrome/browser/resources/settings/privacy_page/services_page.ts
+@@ -71,6 +71,10 @@
+         type: Array,
+         value: () => [],
+       },
++      missingExtensions_: {
++        type: Array,
++        value: () => [],
++      },
+     };
+   }
+ 
+@@ -79,6 +83,7 @@
+   declare private syncTokenVisible_: boolean;
+   declare private syncStatusText_: string;
+   declare private syncTrash_: HeliumTrashItem[];
++  declare private missingExtensions_: string[];
+ 
+   override ready() {
+     super.ready();
+@@ -124,9 +129,18 @@
+   private refreshSyncStatus_() {
+     sendWithPromise<HeliumSyncStatus>('getHeliumSyncStatus').then((s) => {
+       this.syncStatusText_ = this.formatSyncStatus_(s);
++      this.missingExtensions_ = s.missing ?? [];
+     });
+   }
+ 
++  private hasMissingExtensions_(missing: string[]): boolean {
++    return !!missing && missing.length > 0;
++  }
++
++  private webStoreUrl_(id: string): string {
++    return `https://chromewebstore.google.com/detail/${id}`;
++  }
++
+   private formatSyncStatus_(s: HeliumSyncStatus): string {
+     if (s.status === 'syncing') {
+       return this.i18n('heliumSyncStatusSyncing');

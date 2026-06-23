@@ -464,14 +464,10 @@
    protected onOriginOverrideKeydown_(event: KeyboardEvent) {
      const target = event.target as CrInputElement;
  
-@@ -94,6 +220,55 @@ export class SettingsHeliumServicesPageElement extends
+@@ -94,6 +220,51 @@ export class SettingsHeliumServicesPageElement extends
  
      this.setPrefValue('helium.services.origin_override', target.value);
    }
-+
-+  private onServicesPendingButtonClick_() {
-+    window.open('chrome://setup', '_blank');
-+  }
 +
 +  private onSyncTokenChange_(event: Event) {
 +    const target = event.target as CrInputElement;
