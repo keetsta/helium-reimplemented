@@ -181,7 +181,7 @@
      .label-wrapper {
          padding: var(--cr-section-vertical-padding) 0;
      }
-@@ -37,6 +37,40 @@
+@@ -37,6 +37,51 @@
          padding: calc(var(--cr-section-padding) / 2) var(--cr-section-padding);
          justify-content: space-between;
      }
@@ -218,6 +218,17 @@
 +        align-items: center;
 +        gap: 8px;
 +        margin-inline-start: 16px;
++    }
++
++    /* Trashed-bookmark URLs and missing-extension ids are long, unbreakable
++       strings. Let the text column shrink and wrap them so they don't overflow
++       the row and shove the action buttons off-screen. */
++    #syncCollapse .cr-row .flex {
++        min-width: 0;
++    }
++
++    #syncCollapse .cr-row .flex .label {
++        overflow-wrap: anywhere;
 +    }
  </style>
  
