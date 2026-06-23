@@ -1142,7 +1142,7 @@
  }
 --- a/chrome/browser/ui/tabs/tab_menu_model.cc
 +++ b/chrome/browser/ui/tabs/tab_menu_model.cc
-@@ -349,32 +349,6 @@ void TabMenuModel::Build(int index) {
+@@ -349,36 +349,10 @@ void TabMenuModel::Build(int index) {
      }
    }
  
@@ -1172,6 +1172,10 @@
 -    }
 -  }
 -
+   if (helium::ShouldSendTab(*tab_strip_->profile()->GetPrefs())) {
+     BuildHeliumSendTabSubmenu(index);
+   }
+ 
  // Append extension items for the 'tab' context if the feature is enabled.
  #if BUILDFLAG(ENABLE_EXTENSIONS)
    if (base::FeatureList::IsEnabled(
