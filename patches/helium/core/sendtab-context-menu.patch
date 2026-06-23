@@ -189,11 +189,10 @@
  #include "chrome/browser/ui/tabs/existing_tab_group_sub_menu_model.h"
  #include "chrome/browser/ui/tabs/existing_window_sub_menu_model.h"
  #include "chrome/browser/ui/tabs/features.h"
-@@ -168,6 +168,24 @@
-                   ui::ImageModel::FromVectorIcon(kDevicesIcon));
+@@ -167,6 +169,23 @@
  #endif
  }
-+
+ 
 +void TabMenuModel::BuildHeliumSendTabSubmenu(int index) {
 +  helium_send_tab_submenu_delegate_ =
 +      std::make_unique<helium::HeliumSendTabMenuDelegate>(
@@ -214,18 +213,18 @@
  void TabMenuModel::Build(int index) {
    std::vector<int> indices;
    if (tab_strip_->IsTabSelected(index)) {
-@@ -367,6 +367,10 @@
-       BuildLegacySendTabToSelfItem();
+@@ -370,6 +389,10 @@
      }
    }
-+
+ 
 +  if (helium::ShouldSendTab(*tab_strip_->profile()->GetPrefs())) {
 +    BuildHeliumSendTabSubmenu(index);
 +  }
- 
++
  // Append extension items for the 'tab' context if the feature is enabled.
  #if BUILDFLAG(ENABLE_EXTENSIONS)
-@@ -466,6 +466,11 @@
+   if (base::FeatureList::IsEnabled(
+@@ -445,6 +468,11 @@
      return matcher->IsCommandIdEnabled(GetCommandIdAt(index));
    }
  #endif
