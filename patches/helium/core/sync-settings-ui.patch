@@ -181,7 +181,7 @@
      .label-wrapper {
          padding: var(--cr-section-vertical-padding) 0;
      }
-@@ -37,6 +37,39 @@
+@@ -37,6 +37,40 @@
          padding: calc(var(--cr-section-padding) / 2) var(--cr-section-padding);
          justify-content: space-between;
      }
@@ -193,11 +193,12 @@
 +        padding-inline: var(--cr-section-padding);
 +    }
 +
-+    /* Token row: let the input grow and keep the Generate button beside it with
-+       a consistent gap, instead of three items crammed together. */
++    /* Token row: label + description span the full row on their own line; the
++       input and Generate button wrap onto the line below (readable description). */
 +    .token-row .flex {
 +        display: flex;
 +        align-items: center;
++        flex-wrap: wrap;
 +        gap: 12px;
 +    }
 +
@@ -207,8 +208,8 @@
 +    }
 +
 +    .token-row .label-wrapper {
-+        flex: none;
-+        max-width: 40%;
++        flex: 1 0 100%;
++        max-width: none;
 +    }
 +
 +    /* Status row: space the secondary text from the action button(s). */
@@ -221,7 +222,7 @@
  </style>
  
  <settings-subpage page-title="$i18n{heliumServicesTitle}" route-path$="[[routePath]]">
-@@ -109,6 +142,155 @@
+@@ -109,6 +143,155 @@
                  label="$i18n{heliumUboToggle}"
                  sub-label="$i18n{heliumUboToggleDescription}">
              </settings-toggle-button>

@@ -33,7 +33,7 @@
        {"heliumSendTabToggleDescription",
 --- a/chrome/browser/resources/settings/privacy_page/services_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/services_page.html
-@@ -213,6 +213,31 @@
+@@ -214,6 +214,31 @@
                          </div>
                        </template>
                      </template>
