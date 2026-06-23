@@ -100,10 +100,10 @@
 +      When a tab arrives
 +    </message>
 +    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE_DESCRIPTION" desc="Description of the received-tab handling dropdown">
-+      Choose whether an incoming tab shows a notification you click to open, or opens automatically.
++      Choose whether an incoming tab shows a prompt you click to open, or opens automatically.
 +    </message>
-+    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY" desc="Dropdown option: show a notification for an incoming tab">
-+      Show a notification
++    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY" desc="Dropdown option: show a prompt for an incoming tab that the user clicks to open">
++      Let me click to open
 +    </message>
 +    <message name="IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_OPEN" desc="Dropdown option: open an incoming tab automatically">
 +      Open automatically
