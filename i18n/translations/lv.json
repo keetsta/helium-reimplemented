@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "Helium atbrīvo atmiņu no neaktīvajām cilnēm. Tas nodrošina aktīvajām cilnēm un citām lietotnēm vairāk datora resursu un uztur Helium ātru darbību. Neaktīvās cilnes automātiski kļūst atkal aktīvas, kad atgriežaties tajās."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "Helium taupa akumulatora enerģiju, ierobežojot fona darbību un vizuālos efektus, piemēram, vienmērīgu ritināšanu un video kadru ātrumu."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "Helium iepriekš ielādē lapas, padarot pārlūkošanu un meklēšanu ātrāku."
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "Pievienotās vietnes vienmēr paliks aktīvas, un no tām netiks atbrīvota atmiņa."
@@ -28,12 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "Saņemiet paziņojumus ar ieteikumiem, kā uzlabot konstatētās veiktspējas problēmas."
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "Importēts no <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "feminine": "Importēta no <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -85,11 +64,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "Izmantot savu Helium pakalpojumu instanci"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "Varat mitināt savu Helium pakalpojumu instanci un izmantot to savā pārlūkprogrammā noklusējuma instances vietā. Tikai HTTPS."
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",

@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "O Helium liberta memória dos separadores inativos. Isto disponibiliza mais recursos do sistema para os separadores ativos e outras aplicações, mantendo o Helium rápido. Os seus separadores inativos são reativados automaticamente assim que regressa a eles."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "O Helium poupa bateria ao limitar processos em segundo plano e efeitos visuais, tais como a fluidez do scroll e a taxa de atualização de vídeos."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "O Helium pré-carrega páginas, o que torna a navegação e as pesquisas mais rápidas."
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "Os sites que adicionar permanecerão sempre ativos e a respetiva memória não será libertada."
@@ -28,11 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "Receba notificações que sugerem formas de melhorar problemas de desempenho identificados."
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "Importado de <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -83,11 +63,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "Utilizar a sua própria instância dos serviços Helium"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "Pode alojar a sua própria instância dos serviços Helium e utilizá-la no seu navegador em vez da predefinida. Apenas HTTPS."
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",

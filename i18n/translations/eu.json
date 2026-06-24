@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "Helium-ek memoria askatzen du fitxa inaktiboetatik. Honek fitxa aktiboei eta beste aplikazioei ordenagailuaren baliabide gehiago ematen dizkie eta Helium azkarra mantentzen du. Zure fitxa inaktiboak automatikoki aktibatzen dira berriro haietara itzultzen zarenean."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "Helium-ek bateria aurrezten du atzeko planoko jarduera eta efektu bisualak mugatuz, hala nola korritze leuna eta bideo-fotograma-tasak."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "Helium-ek orriak aurrez kargatzen ditu, nabigazioa eta bilaketa azkarragoak eginez."
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "Gehitzen dituzun guneak beti aktibo mantenduko dira eta ez da memoria askatuko haietatik."
@@ -28,13 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "Jaso detektatutako errendimendu-arazoak hobetzeko moduak iradokitzen dituzten jakinarazpenak."
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "<ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>-etik inportatua",
-    "feminine": "<ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>-etik inportatua",
-    "masculine": "<ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>-etik inportatua"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -85,11 +63,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "Erabili Helium zerbitzuen zure instantzia propioa"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "Helium zerbitzuen zure instantzia propioa ostatu dezakezu eta zure nabigatzailean erabili lehenetsiaren ordez. HTTPS soilik."
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",

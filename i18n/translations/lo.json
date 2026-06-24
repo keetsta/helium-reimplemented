@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "Helium ປົດປ່ອຍໜ່ວຍຄວາມຈຳຈາກແຖບທີ່ບໍ່ໄດ້ໃຊ້ງານ. ນີ້ຈະໃຫ້ແຖບທີ່ໃຊ້ງານຢູ່ ແລະ ແອັບອື່ນໆມີຊັບພະຍາກອນຄອມພິວເຕີຫຼາຍຂຶ້ນ ແລະ ເຮັດໃຫ້ Helium ໄວ. ແຖບທີ່ບໍ່ໄດ້ໃຊ້ງານຂອງທ່ານຈະກັບມາໃຊ້ງານອີກຄັ້ງໂດຍອັດຕະໂນມັດເມື່ອທ່ານກັບໄປຫາພວກມັນ."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "Helium ປະຢັດພະລັງງານແບັດເຕີຣີໂດຍການຈຳກັດກິດຈະກຳພື້ນຫຼັງ ແລະ ເອັບເຟັກທາງສາຍຕາ ເຊັ່ນ: ການເລື່ອນລື່ນ ແລະ ອັດຕາເຟຣມວິດີໂອ."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "Helium ໂຫລດໜ້າລ່ວງໜ້າ ເຊິ່ງເຮັດໃຫ້ການທ່ອງເວັບ ແລະ ການຊອກຫາໄວຂຶ້ນ."
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "ເວັບໄຊທີ່ທ່ານເພີ່ມຈະຍັງຄົງໃຊ້ງານຢູ່ສະເໝີ ແລະ ໜ່ວຍຄວາມຈຳຈະບໍ່ຖືກປົດປ່ອຍຈາກພວກມັນ."
@@ -28,11 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "ຮັບການແຈ້ງເຕືອນທີ່ແນະນຳວິທີປັບປຸງບັນຫາປະສິດທິພາບທີ່ກວດພົບ."
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "ນຳເຂົ້າຈາກ <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -83,11 +63,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "ໃຊ້ອິນສະແຕນບໍລິການ Helium ຂອງທ່ານເອງ"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "ທ່ານສາມາດໂຮສອິນສະແຕນບໍລິການ Helium ຂອງທ່ານເອງ ແລະ ໃຊ້ມັນໃນບຣາວເຊີຂອງທ່ານແທນຄ່າເລີ່ມຕົ້ນ. HTTPS ເທົ່ານັ້ນ."
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",

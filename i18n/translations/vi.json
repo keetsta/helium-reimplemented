@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "Helium giải phóng bộ nhớ từ các tab không hoạt động. Điều này cung cấp thêm tài nguyên máy tính cho các tab đang hoạt động và các ứng dụng khác, đồng thời giữ cho Helium chạy nhanh. Các tab không hoạt động của bạn sẽ tự động hoạt động trở lại khi bạn quay lại chúng."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "Helium tiết kiệm pin bằng cách hạn chế hoạt động nền và hiệu ứng hình ảnh, chẳng hạn như cuộn mượt và tốc độ khung hình video."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "Helium tải trước các trang giúp duyệt web và tìm kiếm nhanh hơn."
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "Các trang web bạn thêm sẽ luôn hoạt động và bộ nhớ sẽ không được giải phóng từ chúng."
@@ -28,11 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "Nhận thông báo gợi ý cách cải thiện các vấn đề hiệu suất được phát hiện."
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "Đã nhập từ <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -83,11 +63,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "Sử dụng phiên bản dịch vụ Helium của riêng bạn"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "Bạn có thể tự lưu trữ phiên bản dịch vụ Helium của riêng mình và sử dụng nó trong trình duyệt thay vì phiên bản mặc định. Chỉ hỗ trợ HTTPS."
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",

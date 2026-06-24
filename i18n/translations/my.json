@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "Helium သည် အသုံးမပြုသော တက်ဘ်များမှ မမ်မိုရီကို လွတ်ပေးပါသည်။ ၎င်းသည် အသုံးပြုနေသော တက်ဘ်များနှင့် အခြားအက်ပ်များအတွက် ကွန်ပျူတာ အရင်းအမြစ်များကို ပိုမိုရရှိစေပြီး Helium ကို မြန်ဆန်စေပါသည်။ အသုံးမပြုသော တက်ဘ်များသို့ ပြန်သွားသောအခါ ၎င်းတို့သည် အလိုအလျောက် ပြန်လည်အသက်ဝင်ပါသည်။"
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "Helium သည် နောက်ခံလုပ်ဆောင်ချက်များနှင့် ချောမွေ့စွာ scroll လုပ်ခြင်း၊ ဗီဒီယို frame rate များကဲ့သို့ အမြင်အာနိသင်များကို ကန့်သတ်ခြင်းဖြင့် ဘက်ထရီပါဝါကို ချွေတာပါသည်။"
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "Helium သည် စာမျက်နှာများကို ကြိုတင်ဖွင့်ထားပေးပြီး ဝဘ်ကြည့်ရှုခြင်းနှင့် ရှာဖွေခြင်းကို ပိုမြန်ဆန်စေပါသည်။"
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "သင်ထည့်သွင်းသော ဆိုက်များသည် အမြဲတမ်း အသက်ဝင်နေမည်ဖြစ်ပြီး ၎င်းတို့ထံမှ မမ်မိုရီကို လွတ်ပေးမည်မဟုတ်ပါ။"
@@ -28,11 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "တွေ့ရှိသော စွမ်းဆောင်ရည် ပြဿနာများကို ပြုပြင်ရန် နည်းလမ်းများ အကြံပြုသော အကြောင်းကြားချက်များ ရယူပါ။"
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "<ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph> မှ တင်သွင်းထားသည်"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -83,11 +63,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "သင့်ကိုယ်ပိုင် Helium ဝန်ဆောင်မှု instance ကို အသုံးပြုပါ"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "သင်သည် သင့်ကိုယ်ပိုင် Helium ဝန်ဆောင်မှု instance ကို host လုပ်ပြီး ပုံမှန်အစား သင့်ဘရောက်ဇာတွင် အသုံးပြုနိုင်ပါသည်။ HTTPS သာ။"
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",

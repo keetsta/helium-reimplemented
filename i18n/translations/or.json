@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "Helium ନିଷ୍କ୍ରିୟ ଟ୍ୟାବ୍‌ଗୁଡ଼ିକରୁ ମେମୋରୀ ମୁକ୍ତ କରେ। ଏହା ସକ୍ରିୟ ଟ୍ୟାବ୍ ଏବଂ ଅନ୍ୟ ଆପ୍‌ଗୁଡ଼ିକୁ ଅଧିକ କମ୍ପ୍ୟୁଟର ସମ୍ବଳ ପ୍ରଦାନ କରେ ଏବଂ Helium କୁ ଦ୍ରୁତ ରଖେ। ଆପଣ ଫେରିଯିବାବେଳେ ଆପଣଙ୍କ ନିଷ୍କ୍ରିୟ ଟ୍ୟାବ୍‌ଗୁଡ଼ିକ ସ୍ୱୟଂଚାଳିତ ଭାବରେ ପୁଣି ସକ୍ରିୟ ହୋଇଯାଏ।"
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "Helium ପୃଷ୍ଠଭୂମି କାର୍ଯ୍ୟକଳାପ ଏବଂ ଦୃଶ୍ୟ ପ୍ରଭାବ, ଯେପରିକି ମସୃଣ ସ୍କ୍ରୋଲିଂ ଏବଂ ଭିଡିଓ ଫ୍ରେମ୍ ରେଟ୍ ସୀମିତ କରି ବ୍ୟାଟେରୀ ଶକ୍ତି ସଞ୍ଚୟ କରେ।"
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "Helium ପୃଷ୍ଠାଗୁଡ଼ିକୁ ପ୍ରିଲୋଡ୍ କରେ ଯାହା ବ୍ରାଉଜିଂ ଏବଂ ସର୍ଚ୍ଚକୁ ଦ୍ରୁତ କରେ।"
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "ଆପଣ ଯୋଗ କରୁଥିବା ସାଇଟ୍‌ଗୁଡ଼ିକ ସର୍ବଦା ସକ୍ରିୟ ରହିବ ଏବଂ ସେଗୁଡ଼ିକରୁ ମେମୋରୀ ମୁକ୍ତ ହେବ ନାହିଁ।"
@@ -28,11 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "ଚିହ୍ନଟ ହୋଇଥିବା ପ୍ରଦର୍ଶନ ସମସ୍ୟାଗୁଡ଼ିକୁ ସୁଧାରିବା ପାଇଁ ଉପାୟ ସୁଝାଉଥିବା ବିଜ୍ଞପ୍ତି ପାଆନ୍ତୁ।"
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "<ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>ରୁ ଆମଦାନୀ କରାଯାଇଛି"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -83,11 +63,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "Helium ସେବାଗୁଡ଼ିକର ଆପଣଙ୍କ ନିଜସ୍ୱ ଇନ୍‌ଷ୍ଟାନ୍ସ ବ୍ୟବହାର କରନ୍ତୁ"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "ଆପଣ Helium ସେବାଗୁଡ଼ିକର ନିଜସ୍ୱ ଇନ୍‌ଷ୍ଟାନ୍ସ ହୋଷ୍ଟ କରିପାରିବେ ଏବଂ ଡିଫଲ୍ଟ ବଦଳରେ ଆପଣଙ୍କ ବ୍ରାଉଜରରେ ଏହାକୁ ବ୍ୟବହାର କରିପାରିବେ। କେବଳ HTTPS।"
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",

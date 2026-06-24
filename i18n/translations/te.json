@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "Helium నిష్క్రియ ట్యాబ్‌ల నుండి మెమరీని ఖాళీ చేస్తుంది. ఇది సక్రియ ట్యాబ్‌లకు మరియు ఇతర యాప్‌లకు ఎక్కువ కంప్యూటర్ వనరులను అందిస్తుంది మరియు Heliumను వేగంగా ఉంచుతుంది. మీరు తిరిగి వెళ్ళినప్పుడు మీ నిష్క్రియ ట్యాబ్‌లు స్వయంచాలకంగా మళ్ళీ సక్రియం అవుతాయి."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "Helium బ్యాక్‌గ్రౌండ్ కార్యకలాపం మరియు స్మూత్ స్క్రోలింగ్ మరియు వీడియో ఫ్రేమ్ రేట్‌ల వంటి విజువల్ ఎఫెక్ట్‌లను పరిమితం చేయడం ద్వారా బ్యాటరీ శక్తిని సంరక్షిస్తుంది."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "Helium పేజీలను ముందుగానే లోడ్ చేస్తుంది, ఇది బ్రౌజింగ్ మరియు శోధనను వేగవంతం చేస్తుంది."
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "మీరు జోడించే సైట్‌లు ఎల్లప్పుడూ సక్రియంగా ఉంటాయి మరియు వాటి మెమరీ ఖాళీ చేయబడదు."
@@ -28,11 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "గుర్తించబడిన పనితీరు సమస్యలను మెరుగుపరచడానికి మార్గాలను సూచించే నోటిఫికేషన్‌లను పొందండి."
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "<ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph> నుండి దిగుమతి చేయబడింది"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -83,11 +63,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "మీ స్వంత Helium సేవల ఇన్‌స్టాన్స్‌ని ఉపయోగించండి"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "మీరు మీ స్వంత Helium సేవల ఇన్‌స్టాన్స్‌ని హోస్ట్ చేసి, డిఫాల్ట్‌కు బదులుగా మీ బ్రౌజర్‌లో ఉపయోగించవచ్చు. HTTPS మాత్రమే అనుమతించబడుతుంది."
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",

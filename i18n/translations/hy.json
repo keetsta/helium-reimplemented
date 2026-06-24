@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "Helium-ը հիշողություն է ազատում ոչ ակտիվ ներդիրներից։ Սա ակտիվ ներդիրներին և այլ հավելվածներին տրամադրում է համակարգչի ավելի շատ ռեսուրսներ և պահպանում է Helium-ի արագ աշխատանքը։ Ձեր ոչ ակտիվ ներդիրները ավտոմատ կրկին ակտիվանում են, երբ վերադառնում եք դրանց։"
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "Helium-ը խնայում է մարտկոցի լիցքը՝ սահմանափակելով ֆոնային գործունեությունն ու տեսողական էֆեկտները, օրինակ՝ հարթ ոլորումը և տեսանյութի կադրերի հաճախականությունը։"
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "Helium-ը նախապես բեռնում է էջերը, ինչը դարձնում է զննարկումն ու որոնումն ավելի արագ։"
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "Ձեր ավելացրած կայքերը միշտ կմնան ակտիվ, և դրանցից հիշողություն չի ազատվի։"
@@ -28,11 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "Ստացեք ծանուցումներ, որոնք առաջարկում են հայտնաբերված արդյունավետության խնդիրները շտկելու եղանակներ։"
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "Ներմուծված է <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>-ից"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -83,11 +63,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "Օգտագործել Helium ծառայությունների ձեր սեփական սերվերը"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "Դուք կարող եք հյուրընկալել Helium ծառայությունների ձեր սեփական սերվերը և օգտագործել այն ձեր զննարկիչում՝ լռելյայնի փոխարեն։ Միայն HTTPS։"
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",

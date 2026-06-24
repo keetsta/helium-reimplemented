@@ -1,20 +1,5 @@
 [
   {
-    "name": "IDS_SETTINGS_PERFORMANCE_MEMORY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Helium fast. Your inactive tabs automatically become active again when you go back to them.",
-    "message": "Helium идэвхгүй табуудаас санах ойг чөлөөлдөг. Энэ нь идэвхтэй табууд болон бусад програмуудад илүү их нөөц өгч, Helium-ийг хурдан ажиллуулдаг. Та буцаж очиход идэвхгүй табууд автоматаар дахин идэвхждэг."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION",
-    "source": "Helium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.",
-    "message": "Helium батерейны эрчим хүчийг хэмнэхийн тулд ар талын үйл ажиллагаа болон жигд гүйлгэлт, видеоны фрэймийн хурд зэрэг харааны эффектүүдийг хязгаарладаг."
-  },
-  {
-    "name": "IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY",
-    "source": "Helium preloads pages which makes browsing and searching faster.",
-    "message": "Helium хуудсуудыг урьдчилан ачаалснаар вэб үзэх болон хайлтыг хурдасгадаг."
-  },
-  {
     "name": "IDS_SETTINGS_PERFORMANCE_TAB_DISCARDING_EXCEPTIONS_ADD_DIALOG_HELP",
     "source": "Sites you add will always stay active and memory won't be freed up from them.",
     "message": "Таны нэмсэн сайтууд үргэлж идэвхтэй байх бөгөөд тэдгээрээс санах ой чөлөөлөгдөхгүй."
@@ -28,11 +13,6 @@
     "name": "IDS_SETTINGS_PERFORMANCE_INTERVENTION_NOTIFICATION_ENABLED_DESCRIPTION",
     "source": "Get notifications that suggest ways to improve detected performance issues.",
     "message": "Илэрсэн гүйцэтгэлийн асуудлыг сайжруулах арга замыг санал болгох мэдэгдэл авах."
-  },
-  {
-    "name": "IDS_IMPORTED_FROM_BOOKMARK_FOLDER",
-    "source": "Imported from <ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>",
-    "message": "<ph name=\"BROWSER_NAME\">$1<ex>Helium</ex></ph>-с импортолсон"
   },
   {
     "name": "IDS_EXTENSIONS_IMPORTER_LOCK_TITLE",
@@ -83,11 +63,6 @@
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE",
     "source": "Use your own instance of Helium services",
     "message": "Helium үйлчилгээний өөрийн серверийг ашиглах"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION",
-    "source": "You can host your own instance of Helium services and use it in your browser instead of the default one. HTTPS only.",
-    "message": "Та Helium үйлчилгээний өөрийн серверийг байршуулж, анхдагчийн оронд хөтчдөө ашиглах боломжтой. Зөвхөн HTTPS."
   },
   {
     "name": "IDS_SETTINGS_HELIUM_SERVICES_OVERRIDE_DESCRIPTION_WARNING",
