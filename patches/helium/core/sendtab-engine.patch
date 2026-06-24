@@ -824,7 +824,7 @@
 --- a/components/helium_services/pref_names.h
 +++ b/components/helium_services/pref_names.h
 @@ -89,6 +89,24 @@
-
+ 
  inline constexpr char kHeliumSyncBookmarkTrash[] =
      "helium.services.sync_bookmark_trash";
 +
@@ -846,7 +846,7 @@
 +inline constexpr char kHeliumSendTabReceiveMode[] =
 +    "helium.services.sendtab_receive_mode";
  }  // namespace prefs
-
+ 
  #endif  // COMPONENTS_HELIUM_SERVICES_PREF_NAMES_H_
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
@@ -859,7 +859,7 @@
 +    registry->RegisterStringPref(prefs::kHeliumSendTabName, "");
 +    registry->RegisterIntegerPref(prefs::kHeliumSendTabReceiveMode, 0);
    }
-
+ 
    registry->RegisterBooleanPref(
 --- a/components/helium_services/helium_services_helpers.cc
 +++ b/components/helium_services/helium_services_helpers.cc
