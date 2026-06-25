@@ -294,282 +294,6 @@
     "message": "Helium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Helium. Optional filter lists will be requested without proxying."
   },
   {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Toggle for enabling cross-device sync",
-    "message": "Sync extensions and bookmarks across your devices"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_DESCRIPTION",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Description of the cross-device sync toggle",
-    "message": "Helium will sync your extension list and bookmarks across devices that share the same sync token. Bookmarks are only ever added, never deleted. Extensions are listed for you to install, never installed automatically."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_EXTENSIONS",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Toggle for syncing the extension list",
-    "message": "Sync extensions"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_BOOKMARKS",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Toggle for syncing bookmarks",
-    "message": "Sync bookmarks"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Label for the sync token input",
-    "message": "Sync token"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_DESCRIPTION",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Description of the sync token input",
-    "message": "Enter the same secret token on each device you want to sync. Anyone with this token can read and write your synced data, so keep it private and use at least 32 characters."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_GENERATE",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Label for the button that generates a random sync token",
-    "message": "Generate"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_SHOW",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Tooltip for the button that shows or hides the sync token",
-    "message": "Show or hide token"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPY",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Tooltip for the button that copies the sync token to the clipboard",
-    "message": "Copy token"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPIED",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Toast shown after the sync token is copied to the clipboard",
-    "message": "Token copied to clipboard"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_NOW",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Button that triggers an immediate sync",
-    "message": "Sync now"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_RESET",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Button that overwrites the server with local data, purging accumulated items",
-    "message": "Reset server data"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_RESET_CONFIRM",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Confirmation prompt before resetting server sync data",
-    "message": "This replaces the synced data on the server with what is currently on this device. Items that exist only on the server (including ones removed locally) will be discarded. Continue?"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SYNCING",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Sync status: a sync is in progress",
-    "message": "Syncing…"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_ERROR",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Sync status: the last sync failed",
-    "message": "Last sync failed. Check the server address and token."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_CONFLICT",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Sync status: a version conflict will be retried",
-    "message": "A newer version was found on the server. It will be merged on the next sync."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SUCCESS",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Sync status: last successful sync time. $1 is a relative time like '5 minutes ago'.",
-    "message": "Last synced <ph name=\"WHEN\">$1<ex>5 minutes ago</ex></ph>"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_NEVER",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Sync status: never synced yet",
-    "message": "Not synced yet"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_JUST_NOW",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Relative time: less than a minute ago",
-    "message": "just now"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_MINUTES",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Relative time in minutes. $1 is a number.",
-    "message": "<ph name=\"COUNT\">$1<ex>5</ex></ph> min ago"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_HOURS",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Relative time in hours. $1 is a number.",
-    "message": "<ph name=\"COUNT\">$1<ex>2</ex></ph> h ago"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_DAYS",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Relative time in days. $1 is a number.",
-    "message": "<ph name=\"COUNT\">$1<ex>3</ex></ph> d ago"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_TITLE",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Heading for the list of bookmarks deleted on another synced device",
-    "message": "Deleted on another device"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_DESCRIPTION",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Explains the bookmark trash bin",
-    "message": "Bookmarks removed on another device land here. Restore them or delete them for good."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_RESTORE",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Button that restores a trashed bookmark",
-    "message": "Restore"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_DELETE_FOREVER",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Button that permanently discards a trashed bookmark",
-    "message": "Delete forever"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Button that empties the bookmark trash bin",
-    "message": "Empty trash"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Confirmation prompt before permanently emptying the bookmark trash bin",
-    "message": "Permanently delete all bookmarks in the trash? This cannot be undone."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Link to the source code of the Helium services server",
-    "message": "View the Helium Reimplemented services source code"
-  },
-  {
-    "name": "IDS_TAB_CXMENU_HELIUM_SEND_TAB_TO_DEVICE",
-    "source": "chrome/app/generated_resources.grd",
-    "context": "The label of the tab context menu submenu for sending the tab to another of the user's devices.",
-    "message": "Send tab to my devices"
-  },
-  {
-    "name": "IDS_TAB_CXMENU_HELIUM_SEND_TAB_TO_DEVICE",
-    "source": "chrome/app/generated_resources.grd",
-    "context": "In Title Case: The label of the tab context menu submenu for sending the tab to another of the user's devices.",
-    "message": "Send Tab to My Devices"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Toggle for enabling send-tab-to-device",
-    "message": "Send tabs to your devices"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DESCRIPTION",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Description of the send-tab-to-device toggle",
-    "message": "Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Label for the device name input",
-    "message": "Device name"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME_DESCRIPTION",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Description of the device name input",
-    "message": "The name other devices see when choosing where to send a tab."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Label for the dropdown choosing how received tabs are handled",
-    "message": "When a tab arrives"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE_DESCRIPTION",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Description of the received-tab handling dropdown",
-    "message": "Choose whether an incoming tab shows a prompt you click to open, or opens automatically."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Dropdown option: show a prompt for an incoming tab that the user clicks to open",
-    "message": "Let me click to open"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_OPEN",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Dropdown option: open an incoming tab automatically",
-    "message": "Open automatically"
-  },
-  {
-    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SYNC_TITLE",
-    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
-    "context": "Title of the toggle for cross-device sync of extensions and bookmarks.",
-    "message": "Sync extensions and bookmarks across your devices"
-  },
-  {
-    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SYNC_DESC",
-    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
-    "context": "Description of the cross-device sync toggle.",
-    "message": "Helium will sync your extension list and bookmarks across devices that share the same sync token, through your own services instance. Bookmarks are only ever added, never deleted automatically. Set your sync token in Helium settings."
-  },
-  {
-    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SENDTAB_TITLE",
-    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
-    "context": "Title of the toggle for sending tabs between the user's own devices.",
-    "message": "Send tabs between your devices"
-  },
-  {
-    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SENDTAB_DESC",
-    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
-    "context": "Description of the send-tab-to-device toggle.",
-    "message": "Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_TITLE",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Heading for the list of extensions present on other synced devices but not installed here",
-    "message": "Extensions from your other devices"
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_DESCRIPTION",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Explains that synced extensions are not installed automatically and must be added manually",
-    "message": "These extensions are installed on another of your devices. Helium never installs extensions automatically; add the ones you want."
-  },
-  {
-    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_INSTALL",
-    "source": "chrome/app/settings_strings.grdp",
-    "context": "Button that opens the Chrome Web Store page for a synced extension so the user can install it",
-    "message": "Install"
-  },
-  {
     "name": "IDS_SETTINGS_NEW_TAB_NEXT_TO_ACTIVE_BUTTON",
     "source": "chrome/app/settings_strings.grdp",
     "context": "Label for the checkbox which enables or disables behaviour of opening new tabs next to current active tab.",
@@ -1235,6 +959,282 @@
     "source": "chrome/app/generated_resources.grd",
     "context": "Text on a toast notification that is shown when a link opens a new tab while Zen Mode is enabled.",
     "message": "New tab opened"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toggle for enabling cross-device sync",
+    "message": "Sync extensions and bookmarks across your devices"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the cross-device sync toggle",
+    "message": "Helium will sync your extension list and bookmarks across devices that share the same sync token. Bookmarks are only ever added, never deleted. Extensions are listed for you to install, never installed automatically."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_EXTENSIONS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toggle for syncing the extension list",
+    "message": "Sync extensions"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_BOOKMARKS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toggle for syncing bookmarks",
+    "message": "Sync bookmarks"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the sync token input",
+    "message": "Sync token"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the sync token input",
+    "message": "Enter the same secret token on each device you want to sync. Anyone with this token can read and write your synced data, so keep it private and use at least 32 characters."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_GENERATE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the button that generates a random sync token",
+    "message": "Generate"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_SHOW",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Tooltip for the button that shows or hides the sync token",
+    "message": "Show or hide token"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPY",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Tooltip for the button that copies the sync token to the clipboard",
+    "message": "Copy token"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TOKEN_COPIED",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toast shown after the sync token is copied to the clipboard",
+    "message": "Token copied to clipboard"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_NOW",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that triggers an immediate sync",
+    "message": "Sync now"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_RESET",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that overwrites the server with local data, purging accumulated items",
+    "message": "Reset server data"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_RESET_CONFIRM",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Confirmation prompt before resetting server sync data",
+    "message": "This replaces the synced data on the server with what is currently on this device. Items that exist only on the server (including ones removed locally) will be discarded. Continue?"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SYNCING",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: a sync is in progress",
+    "message": "Syncing…"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_ERROR",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: the last sync failed",
+    "message": "Last sync failed. Check the server address and token."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_CONFLICT",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: a version conflict will be retried",
+    "message": "A newer version was found on the server. It will be merged on the next sync."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_SUCCESS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: last successful sync time. $1 is a relative time like '5 minutes ago'.",
+    "message": "Last synced <ph name=\"WHEN\">$1<ex>5 minutes ago</ex></ph>"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_STATUS_NEVER",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Sync status: never synced yet",
+    "message": "Not synced yet"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_JUST_NOW",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Relative time: less than a minute ago",
+    "message": "just now"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_MINUTES",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Relative time in minutes. $1 is a number.",
+    "message": "<ph name=\"COUNT\">$1<ex>5</ex></ph> min ago"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_HOURS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Relative time in hours. $1 is a number.",
+    "message": "<ph name=\"COUNT\">$1<ex>2</ex></ph> h ago"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TIME_DAYS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Relative time in days. $1 is a number.",
+    "message": "<ph name=\"COUNT\">$1<ex>3</ex></ph> d ago"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_TITLE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Heading for the list of bookmarks deleted on another synced device",
+    "message": "Deleted on another device"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Explains the bookmark trash bin",
+    "message": "Bookmarks removed on another device land here. Restore them or delete them for good."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_RESTORE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that restores a trashed bookmark",
+    "message": "Restore"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_DELETE_FOREVER",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that permanently discards a trashed bookmark",
+    "message": "Delete forever"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that empties the bookmark trash bin",
+    "message": "Empty trash"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Confirmation prompt before permanently emptying the bookmark trash bin",
+    "message": "Permanently delete all bookmarks in the trash? This cannot be undone."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Link to the source code of the Helium services server",
+    "message": "View the Helium Reimplemented services source code"
+  },
+  {
+    "name": "IDS_TAB_CXMENU_HELIUM_SEND_TAB_TO_DEVICE",
+    "source": "chrome/app/generated_resources.grd",
+    "context": "The label of the tab context menu submenu for sending the tab to another of the user's devices.",
+    "message": "Send tab to my devices"
+  },
+  {
+    "name": "IDS_TAB_CXMENU_HELIUM_SEND_TAB_TO_DEVICE",
+    "source": "chrome/app/generated_resources.grd",
+    "context": "In Title Case: The label of the tab context menu submenu for sending the tab to another of the user's devices.",
+    "message": "Send Tab to My Devices"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Toggle for enabling send-tab-to-device",
+    "message": "Send tabs to your devices"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the send-tab-to-device toggle",
+    "message": "Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the device name input",
+    "message": "Device name"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_DEVICE_NAME_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the device name input",
+    "message": "The name other devices see when choosing where to send a tab."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the dropdown choosing how received tabs are handled",
+    "message": "When a tab arrives"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_MODE_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the received-tab handling dropdown",
+    "message": "Choose whether an incoming tab shows a prompt you click to open, or opens automatically."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_NOTIFY",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Dropdown option: show a prompt for an incoming tab that the user clicks to open",
+    "message": "Let me click to open"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SENDTAB_RECEIVE_OPEN",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Dropdown option: open an incoming tab automatically",
+    "message": "Open automatically"
+  },
+  {
+    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SYNC_TITLE",
+    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
+    "context": "Title of the toggle for cross-device sync of extensions and bookmarks.",
+    "message": "Sync extensions and bookmarks across your devices"
+  },
+  {
+    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SYNC_DESC",
+    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
+    "context": "Description of the cross-device sync toggle.",
+    "message": "Helium will sync your extension list and bookmarks across devices that share the same sync token, through your own services instance. Bookmarks are only ever added, never deleted automatically. Set your sync token in Helium settings."
+  },
+  {
+    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SENDTAB_TITLE",
+    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
+    "context": "Title of the toggle for sending tabs between the user's own devices.",
+    "message": "Send tabs between your devices"
+  },
+  {
+    "name": "IDS_HELIUM_ONBOARDING_SERVICES_SENDTAB_DESC",
+    "source": "components/helium_onboarding/helium_onboarding_strings.grdp",
+    "context": "Description of the send-tab-to-device toggle.",
+    "message": "Push an open tab to another of your devices that shares the same sync token. Right-click a tab and pick a device to send it."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_TITLE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Heading for the list of extensions present on other synced devices but not installed here",
+    "message": "Extensions from your other devices"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Explains that synced extensions are not installed automatically and must be added manually",
+    "message": "These extensions are installed on another of your devices. Helium never installs extensions automatically; add the ones you want."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIUM_SERVICES_SYNC_MISSING_EXTENSIONS_INSTALL",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Button that opens the Chrome Web Store page for a synced extension so the user can install it",
+    "message": "Install"
   },
   {
     "name": "IDS_HELIUM_SENDTAB_RECEIVED_TOAST_BODY",
