@@ -850,7 +850,7 @@
  #endif  // COMPONENTS_HELIUM_SERVICES_PREF_NAMES_H_
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -243,6 +243,10 @@
+@@ -263,6 +263,10 @@
      registry->RegisterDictionaryPref(prefs::kHeliumSyncBookmarkBaseline);
      registry->RegisterDictionaryPref(prefs::kHeliumSyncExtensionBaseline);
      registry->RegisterListPref(prefs::kHeliumSyncBookmarkTrash);
@@ -863,7 +863,7 @@
    registry->RegisterBooleanPref(
 --- a/components/helium_services/helium_services_helpers.cc
 +++ b/components/helium_services/helium_services_helpers.cc
-@@ -112,6 +112,12 @@
+@@ -119,6 +119,12 @@
              !prefs.GetString(prefs::kHeliumSyncToken).empty();
  }
  
@@ -876,7 +876,7 @@
  GURL GetExtensionUpdateURL(const PrefService& prefs) {
      if (!ShouldAccessExtensionService(prefs)) {
          return GetDummyURL();
-@@ -172,6 +178,27 @@
+@@ -187,6 +193,27 @@
          base::StringPrintf("/sync/%s", collection));
  }
  
@@ -906,16 +906,16 @@
    registrar.Add(prefs::kHeliumServicesEnabled, observer);
 --- a/components/helium_services/helium_services_helpers.h
 +++ b/components/helium_services/helium_services_helpers.h
-@@ -25,6 +25,7 @@
- COMPONENT_EXPORT(HELIUM) bool ShouldAccessUpdateService(const PrefService& prefs);
+@@ -26,6 +26,7 @@
+ COMPONENT_EXPORT(HELIUM) bool ShouldAccessComponentUpdateService(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) bool ShouldAccessUBlockAssets(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) bool ShouldSync(const PrefService& prefs);
 +COMPONENT_EXPORT(HELIUM) bool ShouldSendTab(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetServicesBaseURL(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetDummyURL();
  COMPONENT_EXPORT(HELIUM) GURL GetExtensionUpdateURL(const PrefService& prefs);
-@@ -33,6 +34,8 @@
- COMPONENT_EXPORT(HELIUM) GURL GetBrowserUpdateURL(const PrefService& prefs);
+@@ -35,6 +36,8 @@
+ COMPONENT_EXPORT(HELIUM) GURL GetComponentUpdateURL(const PrefService* prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetUBlockAssetsURL(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetSyncCollectionURL(const PrefService& prefs, std::string_view collection);
 +COMPONENT_EXPORT(HELIUM) GURL GetSendTabURL(const PrefService& prefs);
@@ -943,7 +943,7 @@
  #include "chrome/browser/hid/hid_policy_allowed_devices_factory.h"
  #include "chrome/browser/history/domain_diversity_reporter_factory.h"
  #include "chrome/browser/history/history_service_factory.h"
-@@ -1035,6 +1036,7 @@
+@@ -1039,6 +1040,7 @@
    HatsServiceFactory::GetInstance();
    HeavyAdServiceFactory::GetInstance();
    helium::HeliumSyncServiceFactory::GetInstance();
@@ -953,7 +953,7 @@
    HidConnectionTrackerFactory::GetInstance();
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
-@@ -418,6 +418,12 @@
+@@ -454,6 +454,12 @@
        settings_api::PrefType::kBoolean;
    (*s_allowlist)[::prefs::kHeliumSyncBookmarksEnabled] =
        settings_api::PrefType::kBoolean;

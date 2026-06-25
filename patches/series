@@ -163,13 +163,6 @@ helium/core/ublock-setup-sources.patch
 helium/core/ublock-install-as-component.patch
 helium/core/ublock-reconfigure-defaults.patch
 helium/core/ublock-helium-services.patch
-helium/core/sync-prefs-and-url.patch
-helium/core/sync-client-engine.patch
-helium/core/sync-settings-ui.patch
-helium/core/sendtab-engine.patch
-helium/core/sendtab-context-menu.patch
-helium/core/sendtab-settings.patch
-helium/core/sync-missing-extensions.patch
 helium/core/clean-omnibox-suggestions.patch
 helium/core/increase-incognito-storage-quota.patch
 
@@ -314,7 +307,6 @@ helium/ui/layout/toolbar-actions.patch
 helium/ui/layout/zen-mode-wiring.patch
 helium/ui/layout/zen-caption-buttons.patch
 helium/ui/layout/zen-mode.patch
-helium/core/sendtab-toast.patch
 
 helium/ui/generate-standard-qr-codes.patch
 helium/ui/pdf-viewer.patch
@@ -322,3 +314,12 @@ helium/ui/hide-pip-live-caption-button.patch
 helium/ui/disable-ink-ripple-effect.patch
 helium/ui/dont-antialias-rects.patch
 helium/ui/fix-windows-ui-position.patch
+
+helium/core/sync-prefs-and-url.patch
+helium/core/sync-client-engine.patch
+helium/core/sync-settings-ui.patch
+helium/core/sendtab-engine.patch
+helium/core/sendtab-context-menu.patch
+helium/core/sendtab-settings.patch
+helium/core/sync-missing-extensions.patch
+helium/core/sendtab-toast.patch

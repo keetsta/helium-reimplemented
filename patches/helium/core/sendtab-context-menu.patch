@@ -213,7 +213,7 @@
  void TabMenuModel::Build(int index) {
    std::vector<int> indices;
    if (tab_strip_->IsTabSelected(index)) {
-@@ -370,6 +389,10 @@
+@@ -349,6 +368,10 @@
      }
    }
  
@@ -224,7 +224,7 @@
  // Append extension items for the 'tab' context if the feature is enabled.
  #if BUILDFLAG(ENABLE_EXTENSIONS)
    if (base::FeatureList::IsEnabled(
-@@ -445,6 +468,11 @@
+@@ -443,6 +466,11 @@
      return matcher->IsCommandIdEnabled(GetCommandIdAt(index));
    }
  #endif
@@ -272,7 +272,7 @@
      # TODO(crbug.com/40031409): Fix code that adds exit-time destructors and
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -12104,6 +12104,9 @@
+@@ -12274,6 +12274,9 @@
          <message name="IDS_TAB_CXMENU_CLOSETAB" desc="The label of the tab context menu item for closing one or more tabs.">
            Close
          </message>
@@ -282,7 +282,7 @@
          <message name="IDS_TAB_CXMENU_CLOSEOTHERTABS" desc="The label of the 'Close Other Tabs' Tab context menu item.">
            Close other tabs
          </message>
-@@ -12220,6 +12223,9 @@
+@@ -12405,6 +12408,9 @@
          <message name="IDS_TAB_CXMENU_CLOSETAB" desc="In Title Case: The label of the tab context menu item for closing one or more tabs.">
            Close
          </message>

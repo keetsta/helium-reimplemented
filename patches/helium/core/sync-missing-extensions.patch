@@ -1,6 +1,6 @@
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -1866,6 +1866,15 @@
+@@ -1920,6 +1920,15 @@
      <message name="IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM" desc="Confirmation prompt before permanently emptying the bookmark trash bin">
        Permanently delete all bookmarks in the trash? This cannot be undone.
      </message>
@@ -18,7 +18,7 @@
      </message>
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2316,6 +2316,12 @@
+@@ -2336,6 +2336,12 @@
          IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY},
        {"heliumSyncTrashEmptyConfirm",
          IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM},

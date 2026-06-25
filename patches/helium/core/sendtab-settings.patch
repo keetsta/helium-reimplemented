@@ -1,6 +1,6 @@
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -1869,6 +1869,30 @@
+@@ -1923,6 +1923,30 @@
      <message name="IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK" desc="Link to the source code of the Helium services server">
        View the Helium Reimplemented services source code
      </message>
@@ -33,7 +33,7 @@
      </message>
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2317,6 +2317,21 @@
+@@ -2337,6 +2337,21 @@
        {"heliumSyncTrashEmptyConfirm",
          IDS_SETTINGS_HELIUM_SERVICES_SYNC_TRASH_EMPTY_CONFIRM},
        {"heliumServicesRepoLink", IDS_SETTINGS_HELIUM_SERVICES_REPO_LINK},
@@ -108,4 +108,5 @@
              {#if !platform.is.linux}
                  <Toggle
                      title={s.services.autoupdatesTitle}
+
 
