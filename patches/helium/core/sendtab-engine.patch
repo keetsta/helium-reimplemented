@@ -850,7 +850,7 @@
  #endif  // COMPONENTS_HELIUM_SERVICES_PREF_NAMES_H_
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -263,6 +263,10 @@
+@@ -243,6 +243,10 @@
      registry->RegisterDictionaryPref(prefs::kHeliumSyncBookmarkBaseline);
      registry->RegisterDictionaryPref(prefs::kHeliumSyncExtensionBaseline);
      registry->RegisterListPref(prefs::kHeliumSyncBookmarkTrash);
@@ -863,24 +863,23 @@
    registry->RegisterBooleanPref(
 --- a/components/helium_services/helium_services_helpers.cc
 +++ b/components/helium_services/helium_services_helpers.cc
-@@ -118,6 +118,12 @@
-             prefs.GetBoolean(prefs::kHeliumSyncEnabled) &&
+@@ -112,6 +112,12 @@
              !prefs.GetString(prefs::kHeliumSyncToken).empty();
  }
-+
+ 
 +bool ShouldSendTab(const PrefService& prefs) {
 +    return ShouldAccessServices(prefs) &&
 +            prefs.GetBoolean(prefs::kHeliumSendTabEnabled) &&
 +            !prefs.GetString(prefs::kHeliumSyncToken).empty();
 +}
- 
++
  GURL GetExtensionUpdateURL(const PrefService& prefs) {
      if (!ShouldAccessExtensionService(prefs)) {
-@@ -192,6 +192,27 @@
-     return GetServicesBaseURL(prefs).Resolve(
+         return GetDummyURL();
+@@ -172,6 +178,27 @@
          base::StringPrintf("/sync/%s", collection));
  }
-+
+ 
 +GURL GetSendTabURL(const PrefService& prefs) {
 +    if (!ShouldSendTab(prefs)) {
 +        return GetDummyURL();
@@ -901,21 +900,22 @@
 +    return GetServicesBaseURL(prefs).Resolve(
 +        base::StringPrintf("/sync/sendtab/%s", device_id));
 +}
- 
++
  void ConfigurePrefChangeRegistrarFor(std::string_view pref_name,
      PrefChangeRegistrar& registrar, const base::RepeatingClosure& observer) {
+   registrar.Add(prefs::kHeliumServicesEnabled, observer);
 --- a/components/helium_services/helium_services_helpers.h
 +++ b/components/helium_services/helium_services_helpers.h
-@@ -26,6 +26,7 @@
- COMPONENT_EXPORT(HELIUM) bool ShouldAccessComponentUpdateService(const PrefService& prefs);
+@@ -25,6 +25,7 @@
+ COMPONENT_EXPORT(HELIUM) bool ShouldAccessUpdateService(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) bool ShouldAccessUBlockAssets(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) bool ShouldSync(const PrefService& prefs);
 +COMPONENT_EXPORT(HELIUM) bool ShouldSendTab(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetServicesBaseURL(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetDummyURL();
  COMPONENT_EXPORT(HELIUM) GURL GetExtensionUpdateURL(const PrefService& prefs);
-@@ -36,6 +36,8 @@
- COMPONENT_EXPORT(HELIUM) GURL GetComponentUpdateURL(const PrefService* prefs);
+@@ -33,6 +34,8 @@
+ COMPONENT_EXPORT(HELIUM) GURL GetBrowserUpdateURL(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetUBlockAssetsURL(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetSyncCollectionURL(const PrefService& prefs, std::string_view collection);
 +COMPONENT_EXPORT(HELIUM) GURL GetSendTabURL(const PrefService& prefs);
@@ -925,7 +925,7 @@
                              PrefChangeRegistrar& registrar, const base::RepeatingClosure& observer);
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -643,6 +643,7 @@
+@@ -635,6 +635,7 @@
      "//chrome/browser/google",
      "//chrome/browser/headless:initializer",
      "//chrome/browser/helium_sync",
@@ -943,7 +943,7 @@
  #include "chrome/browser/hid/hid_policy_allowed_devices_factory.h"
  #include "chrome/browser/history/domain_diversity_reporter_factory.h"
  #include "chrome/browser/history/history_service_factory.h"
-@@ -1040,6 +1040,7 @@
+@@ -1035,6 +1036,7 @@
    HatsServiceFactory::GetInstance();
    HeavyAdServiceFactory::GetInstance();
    helium::HeliumSyncServiceFactory::GetInstance();
@@ -953,7 +953,7 @@
    HidConnectionTrackerFactory::GetInstance();
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
-@@ -454,6 +454,12 @@
+@@ -418,6 +418,12 @@
        settings_api::PrefType::kBoolean;
    (*s_allowlist)[::prefs::kHeliumSyncBookmarksEnabled] =
        settings_api::PrefType::kBoolean;

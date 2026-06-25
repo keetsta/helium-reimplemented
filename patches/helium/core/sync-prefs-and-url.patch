@@ -57,7 +57,7 @@
  #endif  // COMPONENTS_HELIUM_SERVICES_PREF_NAMES_H_
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -252,6 +252,17 @@
+@@ -232,6 +232,17 @@
      registry->RegisterBooleanPref(prefs::kHeliumServicesConsented, false);
      registry->RegisterBooleanPref(prefs::kHeliumUpdateFetchingEnabled, true);
      registry->RegisterBooleanPref(prefs::kHeliumUBlockAssetsEnabled, true);
@@ -77,7 +77,7 @@
    registry->RegisterBooleanPref(
 --- a/components/helium_services/helium_services_helpers.cc
 +++ b/components/helium_services/helium_services_helpers.cc
-@@ -113,6 +113,12 @@
+@@ -106,6 +106,12 @@
              prefs.GetBoolean(prefs::kHeliumUBlockAssetsEnabled);
  }
  
@@ -90,7 +90,7 @@
  GURL GetExtensionUpdateURL(const PrefService& prefs) {
      if (!ShouldAccessExtensionService(prefs)) {
          return GetDummyURL();
-@@ -172,6 +178,15 @@
+@@ -157,6 +163,15 @@
      return GetServicesBaseURL(prefs).Resolve("/ubo/assets.json");
  }
  
@@ -108,17 +108,17 @@
    registrar.Add(prefs::kHeliumServicesEnabled, observer);
 --- a/components/helium_services/helium_services_helpers.h
 +++ b/components/helium_services/helium_services_helpers.h
-@@ -25,6 +25,7 @@
+@@ -24,6 +24,7 @@
+ COMPONENT_EXPORT(HELIUM) bool ShouldAccessExtensionService(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) bool ShouldAccessUpdateService(const PrefService& prefs);
- COMPONENT_EXPORT(HELIUM) bool ShouldAccessComponentUpdateService(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) bool ShouldAccessUBlockAssets(const PrefService& prefs);
 +COMPONENT_EXPORT(HELIUM) bool ShouldSync(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetServicesBaseURL(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetDummyURL();
  COMPONENT_EXPORT(HELIUM) GURL GetExtensionUpdateURL(const PrefService& prefs);
-@@ -33,6 +34,7 @@
+@@ -31,6 +32,7 @@
+ COMPONENT_EXPORT(HELIUM) GURL GetSpellcheckURL(const PrefService& prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetBrowserUpdateURL(const PrefService& prefs);
- COMPONENT_EXPORT(HELIUM) GURL GetComponentUpdateURL(const PrefService* prefs);
  COMPONENT_EXPORT(HELIUM) GURL GetUBlockAssetsURL(const PrefService& prefs);
 +COMPONENT_EXPORT(HELIUM) GURL GetSyncCollectionURL(const PrefService& prefs, std::string_view collection);
  COMPONENT_EXPORT(HELIUM) std::optional<GURL> GetValidUserOverridenURL(std::string_view user_url_);

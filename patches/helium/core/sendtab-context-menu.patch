@@ -134,33 +134,33 @@
 +}  // namespace helium
 --- a/chrome/app/chrome_command_ids.h
 +++ b/chrome/app/chrome_command_ids.h
-@@ -508,6 +508,12 @@
- #define IDC_CONTENT_CONTEXT_SEND_TAB_TO_SELF_DEVICE_LAST \
+@@ -509,6 +509,12 @@
    IDC_CONTENT_CONTEXT_SEND_TAB_TO_SELF_DEVICE5
  #define IDC_CONTENT_CONTEXT_SEND_TAB_TO_SELF_MANAGE_DEVICES 51045
-+
+ 
 +// Helium send-tab-to-device: dynamic per-device items in the tab context menu
 +// submenu. Reserve a block of 20 so the device list rarely overflows it.
 +#define IDC_HELIUM_SEND_TAB_TO_DEVICE_SUBMENU 51049
 +#define IDC_HELIUM_SEND_TAB_TO_DEVICE_FIRST 51050
 +#define IDC_HELIUM_SEND_TAB_TO_DEVICE_LAST 51069
- 
++
  // ChromeOS clipboard history
  #define IDC_CONTENT_PASTE_FROM_CLIPBOARD 51037
+ 
 --- a/chrome/browser/ui/tabs/tab_menu_model.h
 +++ b/chrome/browser/ui/tabs/tab_menu_model.h
-@@ -16,6 +16,10 @@
- namespace send_tab_to_self {
+@@ -17,6 +17,10 @@
  class SendTabToSelfContextMenuDelegate;
  }
-+
+ 
 +namespace helium {
 +class HeliumSendTabMenuDelegate;
 +}
- 
++
  #if BUILDFLAG(ENABLE_EXTENSIONS)
  namespace extensions {
-@@ -75,6 +75,7 @@
+ class ContextMenuMatcher;
+@@ -71,6 +75,7 @@
    void BuildForWebApp(int index);
    void BuildSendTabToSelfSubmenu(int index);
    void BuildLegacySendTabToSelfItem();
@@ -168,7 +168,7 @@
  
  #if BUILDFLAG(ENABLE_EXTENSIONS)
    // Support for appending and executing commands for extension items in the
-@@ -95,6 +95,9 @@
+@@ -90,6 +95,9 @@
    std::unique_ptr<ui::SimpleMenuModel> send_tab_to_self_submenu_;
    std::unique_ptr<send_tab_to_self::SendTabToSelfContextMenuDelegate>
        send_tab_to_self_submenu_delegate_;
@@ -246,7 +246,7 @@
        "tab_menu_model.h",
        "tab_menu_model_delegate.h",
        "tab_menu_model_factory.h",
-@@ -94,6 +94,7 @@
+@@ -93,6 +94,7 @@
  
      sources = [
        "glic_tab_sub_menu_model.cc",
@@ -254,7 +254,7 @@
        "tab_menu_model.cc",
        "tab_menu_model_factory.cc",
      ]
-@@ -109,6 +109,7 @@
+@@ -107,6 +109,7 @@
        "//chrome/browser/extensions",
        "//chrome/browser/glic",
        "//chrome/browser/glic/browser_ui",
@@ -262,7 +262,7 @@
        "//chrome/browser/profiles:profile",
        "//chrome/browser/send_tab_to_self",
        "//chrome/browser/ui:ui_features",
-@@ -120,6 +120,7 @@
+@@ -117,6 +120,7 @@
        "//components/commerce/core:commerce_constants",
        "//components/commerce/core:feature_list",
        "//components/feed:feature_list",
@@ -272,7 +272,7 @@
      # TODO(crbug.com/40031409): Fix code that adds exit-time destructors and
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -11894,6 +11894,9 @@
+@@ -12104,6 +12104,9 @@
          <message name="IDS_TAB_CXMENU_CLOSETAB" desc="The label of the tab context menu item for closing one or more tabs.">
            Close
          </message>
@@ -282,7 +282,7 @@
          <message name="IDS_TAB_CXMENU_CLOSEOTHERTABS" desc="The label of the 'Close Other Tabs' Tab context menu item.">
            Close other tabs
          </message>
-@@ -12028,6 +12028,9 @@
+@@ -12220,6 +12223,9 @@
          <message name="IDS_TAB_CXMENU_CLOSETAB" desc="In Title Case: The label of the tab context menu item for closing one or more tabs.">
            Close
          </message>

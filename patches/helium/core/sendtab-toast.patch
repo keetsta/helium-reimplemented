@@ -71,7 +71,7 @@
      "//chrome/browser/send_tab_to_self",
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -19961,6 +19961,12 @@
+@@ -20440,6 +20440,12 @@
      <message name="IDS_REPORT_UNSAFE_SITE_CONFIRMATION_TOAST" desc="Message confirmation after unsafe-site-report sends to Google">
        Report sent
      </message>

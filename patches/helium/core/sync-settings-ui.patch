@@ -1,6 +1,6 @@
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
-@@ -446,6 +446,14 @@
+@@ -410,6 +410,14 @@
        settings_api::PrefType::kBoolean;
    (*s_allowlist)[::prefs::kHeliumUBlockAssetsEnabled] =
        settings_api::PrefType::kBoolean;
@@ -17,7 +17,7 @@
    (*s_allowlist)[::prefs::kHeliumServicesConsented] =
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -1835,6 +1835,93 @@
+@@ -1782,6 +1782,93 @@
      <message name="IDS_SETTINGS_HELIUM_SERVICES_UBO_DESCRIPTION" desc="Description of the toggle for automatic update downloads">
        Helium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Helium. Optional filter lists will be requested without proxying.
      </message>
@@ -113,7 +113,7 @@
      </message>
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2284,6 +2284,59 @@
+@@ -2264,6 +2264,59 @@
          IDS_SETTINGS_HELIUM_SERVICES_UBO},
        {"heliumUboToggleDescription",
          IDS_SETTINGS_HELIUM_SERVICES_UBO_DESCRIPTION},
@@ -233,7 +233,7 @@
  </style>
  
  <settings-subpage page-title="$i18n{heliumServicesTitle}" route-path$="[[routePath]]">
-@@ -109,6 +143,155 @@
+@@ -109,6 +154,155 @@
                  label="$i18n{heliumUboToggle}"
                  sub-label="$i18n{heliumUboToggleDescription}">
              </settings-toggle-button>

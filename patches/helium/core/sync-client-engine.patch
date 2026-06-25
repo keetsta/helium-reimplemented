@@ -1302,7 +1302,7 @@
 +}
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -642,6 +642,7 @@
+@@ -634,6 +634,7 @@
      "//chrome/browser/first_run:impl",
      "//chrome/browser/google",
      "//chrome/browser/headless:initializer",
@@ -1320,7 +1320,7 @@
  #include "chrome/browser/hid/hid_policy_allowed_devices_factory.h"
  #include "chrome/browser/history/domain_diversity_reporter_factory.h"
  #include "chrome/browser/history/history_service_factory.h"
-@@ -1037,6 +1038,7 @@
+@@ -1033,6 +1034,7 @@
    GoogleGroupsManagerFactory::GetInstance();
    HatsServiceFactory::GetInstance();
    HeavyAdServiceFactory::GetInstance();
