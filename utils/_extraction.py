@@ -90,7 +90,7 @@ def _process_relative_to(unpack_root, relative_to):
         dest_path = unpack_root / src_path.name
         if os.path.isdir(dest_path):
             shutil.rmtree(dest_path)
-        src_path.rename(dest_path)
+        os.replace(src_path, dest_path)
     relative_root.rmdir()
 
 
